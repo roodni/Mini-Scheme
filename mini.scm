@@ -68,9 +68,45 @@
 (define (v-builtin.proc builtin) (cadddr builtin))
 
 (define v-lambda-tag 'lambda)
+
 (define v-pair-tag 'pair)
 
+(define (v-print base-print is-cdr v)
+  (cond
+    ((number? v) (base-print v))
+    ((boolean? v) (base-print v))
+    ((string? v) (base-print v))
+    ((null? v) (base-print v))
+    ((tagged? v-builtin-tag v)
+      (let*
+        ( (v (untag v))
+          (name (v-builtin.name v)))
+        (display "[built-in ")
+        (display name)
+        (display "]")))
+    ((tagged? v-pair-tag v)
+      (let*
+        ( (v (untag v))
+          (a (car v))
+          (d (cdr v)))
+        (if (not is-cdr) (display "("))
+        (v-print base-print #f a)
+        (cond
+          ((null? d) 'do-nothing)
+          ((tagged? v-pair-tag d)
+            (display " ")
+            (v-print base-print #t d))
+          (else
+            (display " . ")
+            (v-print base-print #t d)))
+        (if (not is-cdr) (display ")"))))
+    (else
+      (display "[not-implemented: ")
+      (write v)
+      (display "]"))))
 
+(define (v-display v) (v-print display #f v))
+(define (v-write v) (v-print write #f v))
 
 ;;; env
 (define (env-bind var value) (cons var value))
@@ -152,8 +188,8 @@
                 (raise-mini-error
                   (string-append
                     "wrong number of arguments: "
-                    name "requires"
-                    (number->string argn-min) ", but got"
+                    name " requires "
+                    (number->string argn-min) ", but got "
                     (number->string argn))
                   expr))))
           (else (raise-mini-error "invalid application:" expr)))
@@ -193,10 +229,6 @@
                     (display " ")
                     (write (mini-error.expr condition))
                     'error)
-                  (else
-                    (display "fatal error: ")
-                    (write condition)
-                    'error)
                 )
                 (tag 'ok (mini-eval-toplevel toplevel top-env)))))
           (cond
@@ -205,6 +237,6 @@
                 ( (res (untag res))
                   (value (car res))
                   (top-env (cadr res)))
-                (write value)
+                (v-write value)
                 (loop top-env)))
             (else (loop top-env))))))))
