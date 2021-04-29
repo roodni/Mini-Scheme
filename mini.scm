@@ -218,25 +218,38 @@
   (let loop ((top-env (env-init)))
     (display "\n> ")
     (flush)
-    (let ((toplevel (read)))
-      (if (not (eof-object? toplevel))
-        (let*
-          ( (res
-              (guard
-                (condition
-                  ((mini-error? condition)
-                    (display (mini-error.msg condition))
-                    (display " ")
-                    (write (mini-error.expr condition))
-                    'error)
-                )
-                (tag 'ok (mini-eval-toplevel toplevel top-env)))))
-          (cond
-            ((tagged? 'ok res)
-              (let*
-                ( (res (untag res))
-                  (value (car res))
-                  (top-env (cadr res)))
-                (v-write value)
-                (loop top-env)))
-            (else (loop top-env))))))))
+    (let
+      ( (toplevel
+          (guard (condition
+              ((<read-error> condition)
+                (display "read error")
+                'error) )
+            (let ((input (read)))
+              (if (eof-object? input)
+                input
+                (tag 'ok input))))))
+      (cond
+        ((eof-object? toplevel) 'bye)
+        ((tagged? 'ok toplevel)
+          (let*
+            ( (toplevel (untag toplevel))
+              (res
+                (guard (condition
+                    ((mini-error? condition)
+                      (display "error: ")
+                      (display (mini-error.msg condition))
+                      (display " ")
+                      (write (mini-error.expr condition))
+                      'error) )
+                  (tag 'ok
+                    (mini-eval-toplevel toplevel top-env)))))
+            (cond
+              ((tagged? 'ok res)
+                (let*
+                  ( (res (untag res))
+                    (value (car res))
+                    (top-env (cadr res)))
+                  (v-write value)
+                  (loop top-env)))
+              (else (loop top-env)))))
+        (else (loop top-env))))))
