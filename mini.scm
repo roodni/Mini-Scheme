@@ -1,5 +1,6 @@
 ;;; util
 
+;; tag
 (define (tag id value)
   (cons id value))
 (define (tagged? id obj)
@@ -7,6 +8,7 @@
 (define (untag tagged)
   (cdr tagged))
 
+;; match
 (define (prefixed-list? prefix len obj)
   (and
     (list? obj)
@@ -38,38 +40,57 @@
         (match? (cdr pat) (cdr obj))))
     (else (error "match?: invalid pattern:" pat))))
 
+;; assert
+(define (assert x)
+  (if (not x)
+    (error "assertion failed")))
 
-
-;;; error
-(define mini-error-tag 'mini-error)
-
-(define (raise-mini-error msg expr)
-  (raise (tag mini-error-tag (list msg expr))))
-
-(define (mini-error? obj)
-  (and
-    (tagged? mini-error-tag obj)
-    (match? '(_ _) (untag obj))))
-
-(define (mini-error.msg err)
-  (car (untag err)))
-
-(define (mini-error.expr err)
-  (cadr (untag err)))
-
+;; error message
+(define msg-w-tag 'msg-w) ; use write
+(define msg-v-tag 'msg-v) ; use v-write
+(define (msg-w obj) (tag msg-w-tag obj))
+(define (msg-v obj) (tag msg-v-tag obj))
+(define (msg . l)
+  (for-each
+    (lambda (x)
+      (assert (or (string? x)
+          (number? x)
+          (tagged? msg-w-tag x)
+          (tagged? msg-v-tag x))))
+    l)
+  l)
+(define (msg-append l r)
+  (append l r))
+(define (msg-print msg)
+  (for-each
+    (lambda (x)
+      (cond
+        ((tagged? msg-w-tag x) (write (untag x)))
+        ((tagged? msg-v-tag x) (v-write (untag x)))
+        (else (display x))))
+      msg))
 
 ;;; value
-(define v-builtin-tag 'builtin)
+;; builtin
+(define v-builtin-tag 'v-builtin)
 (define (v-builtin-tagged name argn-min variadic proc)
+  (assert (string? name))
+  (assert (number? argn-min))
+  (assert (boolean? variadic))
+  (assert (procedure? proc))
   (tag v-builtin-tag (list name argn-min variadic proc)))
 (define (v-builtin.name builtin) (car builtin))
 (define (v-builtin.argn-min builtin) (cadr builtin))
 (define (v-builtin.variadic? builtin) (caddr builtin))
 (define (v-builtin.proc builtin) (cadddr builtin))
-
-(define v-lambda-tag 'lambda)
-
+;; lambda
+(define v-lambda-tag 'v-lambda)
+;; pair
 (define v-pair-tag 'pair)
+;; error
+(define v-error-tag 'v-error)
+(define (raise-v-error err)
+  (raise (tag v-error-tag err)))
 
 (define (v-print base-print is-cdr v)
   (cond
@@ -146,7 +167,9 @@
       (lambda (args)
         (fold
           (lambda (v total)
-            (if (number? v) (+ v total) (error "not a number")))
+            (if (number? v)
+              (+ v total)
+              (raise-v-error (msg "not a number"))))
           0 args)))
   ))
 
@@ -162,7 +185,8 @@
       (cond
         ((env-lookup expr env) => env-bind.value)
         ((env-lookup expr top-env) => env-bind.value)
-        (else (raise-mini-error "unknown location:" expr))))
+        (else
+          (raise-v-error (msg "unknown location: " (msg-w expr))))))
     ((list? expr) ; 空リストは上で捕捉されるので空リストでない
       (let*
         ( (values
@@ -173,6 +197,7 @@
           (args (cdr values))
           (argn (length args)))
         (cond
+          ; built-in procedure
           ((tagged? v-builtin-tag callee)
             (let*
               ( (builtin (untag callee))
@@ -185,20 +210,18 @@
                   (= argn-min argn)
                   (and variadic (< argn-min argn)))
                 (proc args); あとでエラー処理を書く
-                (raise-mini-error
-                  (string-append
+                (raise-v-error
+                  (msg
                     "wrong number of arguments: "
-                    name " requires "
-                    (number->string argn-min) ", but got "
-                    (number->string argn))
-                  expr))))
-          (else (raise-mini-error "invalid application:" expr)))
-      )
-    )
-    (else (raise-mini-error "syntax error:" expr))))
+                    name " requires " argn-min ", but got " argn
+                    "\n"
+                    (msg-w expr))))))
+          ; procedure ではない
+          (else (raise-v-error (msg "invalid application: " (msg-w expr)))))))
+    (else (raise-v-error (msg "syntax error: " (msg-w expr))))))
 
 
-;; returns (value top-env)
+; returns (value top-env)
 (define (mini-eval-toplevel toplevel top-env)
   (cond
     ((match? '('define symbol _) toplevel)
@@ -235,11 +258,9 @@
             ( (toplevel (untag toplevel))
               (res
                 (guard (condition
-                    ((mini-error? condition)
+                    ((tagged? v-error-tag condition)
                       (display "error: ")
-                      (display (mini-error.msg condition))
-                      (display " ")
-                      (write (mini-error.expr condition))
+                      (msg-print (untag condition))
                       'error) )
                   (tag 'ok
                     (mini-eval-toplevel toplevel top-env)))))
