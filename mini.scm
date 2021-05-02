@@ -51,22 +51,24 @@
 (define (msg-w obj) (tag msg-w-tag obj))
 (define (msg-v obj) (tag msg-v-tag obj))
 (define (msg . l)
-  (for-each
-    (lambda (x)
-      (assert (or (string? x)
-          (number? x)
-          (tagged? msg-w-tag x)
-          (tagged? msg-v-tag x))))
-    l)
+  (let check ((l l))
+    (for-each
+      (lambda (x)
+        (assert
+          (or (string? x)
+              (number? x)
+              (tagged? msg-w-tag x)
+              (tagged? msg-v-tag x)
+              (and (list? x) (check x)))))
+      l))
   l)
-(define (msg-append l r)
-  (append l r))
 (define (msg-print msg)
   (for-each
     (lambda (x)
       (cond
         ((tagged? msg-w-tag x) (write (untag x)))
         ((tagged? msg-v-tag x) (v-write (untag x)))
+        ((list? x) (msg-print x))
         (else (display x))))
       msg))
 
@@ -89,8 +91,8 @@
 (define v-pair-tag 'pair)
 ;; error
 (define v-error-tag 'v-error)
-(define (raise-v-error err)
-  (raise (tag v-error-tag err)))
+(define (raise-v-error . l)
+  (raise (tag v-error-tag (msg l))))
 
 (define (v-print base-print is-cdr v)
   (cond
@@ -169,7 +171,7 @@
           (lambda (v total)
             (if (number? v)
               (+ v total)
-              (raise-v-error (msg "not a number"))))
+              (raise-v-error "number required, but got " (msg-v v))))
           0 args)))
   ))
 
@@ -186,7 +188,7 @@
         ((env-lookup expr env) => env-bind.value)
         ((env-lookup expr top-env) => env-bind.value)
         (else
-          (raise-v-error (msg "unknown location: " (msg-w expr))))))
+          (raise-v-error "unknown location: " (msg-w expr)))))
     ((list? expr) ; 空リストは上で捕捉されるので空リストでない
       (let*
         ( (values
@@ -209,16 +211,19 @@
                 (or
                   (= argn-min argn)
                   (and variadic (< argn-min argn)))
-                (proc args); あとでエラー処理を書く
+                (guard
+                  (err
+                    ((tagged? v-error-tag err)
+                      (raise-v-error name ": " (untag err) "\n" (msg-w expr))))
+                  (proc args))
                 (raise-v-error
-                  (msg
-                    "wrong number of arguments: "
-                    name " requires " argn-min ", but got " argn
-                    "\n"
-                    (msg-w expr))))))
+                  "wrong number of arguments: "
+                  name " requires " argn-min ", but got " argn
+                  "\n"
+                  (msg-w expr)))))
           ; procedure ではない
-          (else (raise-v-error (msg "invalid application: " (msg-w expr)))))))
-    (else (raise-v-error (msg "syntax error: " (msg-w expr))))))
+          (else (raise-v-error "invalid application: " (msg-w expr))))))
+    (else (raise-v-error "syntax error: " (msg-w expr)))))
 
 
 ; returns (value top-env)
