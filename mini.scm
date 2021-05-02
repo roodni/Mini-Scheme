@@ -88,7 +88,7 @@
 ;; lambda
 (define v-lambda-tag 'v-lambda)
 ;; pair
-(define v-pair-tag 'pair)
+(define v-pair-tag 'v-pair)
 ;; error
 (define v-error-tag 'v-error)
 (define (raise-v-error . l)
@@ -130,6 +130,20 @@
 
 (define (v-display v) (v-print display #f v))
 (define (v-write v) (v-print write #f v))
+
+(define (v->obj v)
+  (cond
+    ((number? v) v)
+    ((boolean? v) v)
+    ((string? v) v)
+    ((null? v) v)
+    ((tagged? v-pair-tag v)
+      (let ((v (untag v)))
+        (cons
+          (v->obj (car v))
+          (v->obj (cdr v)))))
+    (else (error "cannot convert to obj:" v))))
+
 
 ;;; env
 (define (env-bind var value) (cons var value))
