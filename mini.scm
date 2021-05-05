@@ -93,6 +93,8 @@
 (define v-error-tag 'v-error)
 (define (raise-v-error . l)
   (raise (tag v-error-tag (msg l))))
+;; 命令の戻り値
+(define v-command-ret '())
 
 (define (v-print base-print is-cdr v)
   (cond
@@ -187,6 +189,18 @@
               (+ v total)
               (raise-v-error "number required, but got " (msg-v v))))
           0 args)))
+    (env-bind-builtin 'display 1 #f
+      (lambda (args)
+        (v-display (car args))
+        v-command-ret))
+    (env-bind-builtin 'write 1 #f
+      (lambda (args)
+        (v-write (car args))
+        v-command-ret))
+    (env-bind-builtin 'flush 0 #f
+      (lambda (args)
+        (flush)
+        v-command-ret))
   ))
 
 
