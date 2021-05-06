@@ -11,7 +11,7 @@
                 (msg-print (untag err))
                 (display "\n")
                 (k #t)))
-            (let ((res (mini-eval-toplevel toplevel env)))
+            (let ((res (eval-toplevel toplevel env)))
               (cadr res))))
         (env-init) toplevel-list)
       (display "no error occured\n")

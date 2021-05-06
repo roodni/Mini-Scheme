@@ -6,7 +6,7 @@
         (fold
           (lambda (toplevel res)
             (define env (cadr res))
-            (mini-eval-toplevel toplevel env))
+            (eval-toplevel toplevel env))
           (list #t (env-init)) toplevel-list))
       (obj (v->obj (car res))) )
     (if (equal? expected obj)

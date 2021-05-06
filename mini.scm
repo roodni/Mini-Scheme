@@ -72,6 +72,39 @@
         (else (display x))))
       msg))
 
+
+;;; prim (実行可能な式)
+;; 定数式
+(define prim-const-tag 'prim-const)
+;; 手続き呼び出し
+(define prim-call-tag 'prim-call)
+(define (prim-call-tagged callee args expr)
+  (assert (list? args))
+  (tag prim-call-tag (list callee args expr)))
+(define (prim-call.callee prim) (car prim))
+(define (prim-call.args prim) (cadr prim))
+(define (prim-call.expr prim) (caddr prim))
+;; エラー
+(define parse-error-tag 'parse-error)
+(define (raise-parse-error expr)
+  (raise (tag parse-error-tag expr)))
+
+(define (parse-expr expr)
+  (cond
+    ((symbol? expr) expr)
+    ((number? expr) (tag prim-const-tag expr))
+    ((boolean? expr) (tag prim-const-tag expr))
+    ((string? expr) (tag prim-const-tag expr))
+    ((null? expr) (tag prim-const-tag expr))
+    ((list? expr)
+      (let
+        ( (prims
+            (map
+              (lambda (e) (parse-expr e))
+              expr)))
+        (prim-call-tagged (car prims) (cdr prims) expr)))
+    (else (raise-parse-error expr))))
+
 ;;; value
 ;; builtin
 (define v-builtin-tag 'v-builtin)
@@ -149,15 +182,12 @@
 
 ;;; env
 (define (env-bind var value) (cons var value))
-
 (define (env-bind.value bind) (cdr bind))
 
 (define (env-lookup var env)
   (assoc var env))
-
 (define (env-extend var value env)
   (cons (cons var value) env))
-
 (define (env-define var value env)
   (let ((bind (env-lookup var env)))
     (if bind
@@ -204,33 +234,34 @@
   ))
 
 
+
 ;;; eval
-(define (mini-eval-expr expr top-env env)
+(define (eval-prim prim top-env env)
   (cond
-    ((number? expr) expr)
-    ((boolean? expr) expr)
-    ((string? expr) expr)
-    ((null? expr) expr)
-    ((symbol? expr)
+    ((symbol? prim)
       (cond
-        ((env-lookup expr env) => env-bind.value)
-        ((env-lookup expr top-env) => env-bind.value)
+        ((env-lookup prim env) => env-bind.value)
+        ((env-lookup prim top-env) => env-bind.value)
         (else
-          (raise-v-error "unknown location: " (msg-w expr)))))
-    ((list? expr) ; 空リストは上で捕捉されるので空リストでない
+          (raise-v-error "unknown location: " (msg-w prim)))))
+    ((tagged? prim-const-tag prim) (untag prim))
+    ((tagged? prim-call-tag prim)
       (let*
-        ( (values
+        ( (prim (untag prim))
+          (callee-prim (prim-call.callee prim))
+          (args-prim (prim-call.args prim))
+          (expr (prim-call.expr prim))
+          (callee-v (eval-prim callee-prim top-env env))
+          (argn (length args-prim))
+          (args-v
             (map
-              (lambda (e) (mini-eval-expr e top-env env))
-              expr))
-          (callee (car values))
-          (args (cdr values))
-          (argn (length args)))
+              (lambda (p) (eval-prim p top-env env))
+              args-prim)))
         (cond
           ; built-in procedure
-          ((tagged? v-builtin-tag callee)
+          ((tagged? v-builtin-tag callee-v)
             (let*
-              ( (builtin (untag callee))
+              ( (builtin (untag callee-v))
                 (name (v-builtin.name builtin))
                 (argn-min (v-builtin.argn-min builtin))
                 (variadic (v-builtin.variadic? builtin))
@@ -243,7 +274,7 @@
                   (err
                     ((tagged? v-error-tag err)
                       (raise-v-error name ": " (untag err) "\n" (msg-w expr))))
-                  (proc args))
+                  (proc args-v))
                 (raise-v-error
                   "wrong number of arguments: "
                   name " requires " argn-min ", but got " argn
@@ -251,20 +282,23 @@
                   (msg-w expr)))))
           ; procedure ではない
           (else (raise-v-error "invalid application: " (msg-w expr))))))
-    (else (raise-v-error "syntax error: " (msg-w expr)))))
+    (else (error "eval-prim: fatal error:" prim))))
 
 
 ; returns (value top-env)
-(define (mini-eval-toplevel toplevel top-env)
+(define (eval-toplevel toplevel top-env)
   (cond
     ((match? '('define symbol _) toplevel)
       (let*
         ( (var (cadr toplevel))
           (expr (caddr toplevel))
-          (value (mini-eval-expr expr env-empty top-env)))
+          (prim (parse-expr expr))
+          (value (eval-prim prim env-empty top-env)))
         (list '() (env-define var value top-env))))
     (else
-      (let ((value (mini-eval-expr toplevel top-env env-empty)))
+      (let*
+        ( (prim (parse-expr toplevel))
+          (value (eval-prim prim top-env env-empty)))
         (list value top-env)))))
 
 
@@ -290,13 +324,18 @@
           (let*
             ( (toplevel (untag toplevel))
               (res
-                (guard (condition
+                (guard
+                  (condition
                     ((tagged? v-error-tag condition)
                       (display "error: ")
                       (msg-print (untag condition))
-                      'error) )
+                      'error)
+                    ((tagged? parse-error-tag condition)
+                      (display "parse error: ")
+                      (write (untag condition))
+                      'error))
                   (tag 'ok
-                    (mini-eval-toplevel toplevel top-env)))))
+                    (eval-toplevel toplevel top-env)))))
             (cond
               ((tagged? 'ok res)
                 (let*
