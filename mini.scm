@@ -1,18 +1,13 @@
-;;; util
-
-;; tag
-(define (tag id value)
-  (cons id value))
-(define (tagged? id obj)
-  (and (pair? obj) (eq? id (car obj))))
-(define (untag tagged)
-  (cdr tagged))
+;;; utils
+;; assert
+(define (assert x)
+  (if (not x)
+    (error "assertion failed")))
 
 ;; match
-(define (prefixed-list? prefix len obj)
+(define (prefixed-list? prefix obj)
   (and
     (list? obj)
-    (= len (length obj))
     (eq? prefix (car obj))))
 
 (define (match? pat obj)
@@ -21,9 +16,11 @@
     ((eq? pat 'symbol) (symbol? obj))
     ((eq? pat 'string) (string? obj))
     ((null? pat) (null? obj))
-    ((prefixed-list? 'quote 2 pat)
+    ((prefixed-list? 'quote pat)
+      (assert (= 2 (length pat)))
       (equal? (cadr pat) obj))
-    ((prefixed-list? '* 3 pat)
+    ((prefixed-list? '* pat)
+      (assert (= 3 (length pat)))
       (let
         ( (pat-loop (cadr pat))
           (pat-end (caddr pat)))
@@ -33,17 +30,27 @@
             (pair? obj)
             (match? pat-loop (car obj))
             (match? pat (cdr obj))))))
+    ((prefixed-list? 'or pat)
+      (assert (= 3 (length pat)))
+      (let
+        ( (pat-l (cadr pat))
+          (pat-r (caddr pat)))
+        (or (match? pat-l obj)
+            (match? pat-r obj))))
     ((pair? pat)
       (and
         (pair? obj)
         (match? (car pat) (car obj))
         (match? (cdr pat) (cdr obj))))
-    (else (error "match?: invalid pattern:" pat))))
+    (else (assert #f))))
 
-;; assert
-(define (assert x)
-  (if (not x)
-    (error "assertion failed")))
+;; tag
+(define (tag id value)
+  (cons id value))
+(define (tagged? id obj)
+  (and (pair? obj) (eq? id (car obj))))
+(define (untag tagged)
+  (cdr tagged))
 
 ;; error message
 (define msg-w-tag 'msg-w) ; use write
@@ -84,10 +91,40 @@
 (define (prim-call.callee prim) (car prim))
 (define (prim-call.args prim) (cadr prim))
 (define (prim-call.expr prim) (caddr prim))
-;; エラー
+;; 手続き
+(define prim-lambda-tag 'prim-lambda)
+(define (prim-lambda-tagged arg mid-prims last-prim)
+  (assert (list? mid-prims))
+  (tag prim-lambda-tag (list arg mid-prims last-prim)))
+(define (prim-lambda.arg prim) (car prim))
+(define (prim-lambda.mid-prims prim) (cadr prim))
+(define (prim-lambda.last-prim prim) (caddr prim))
+
+;; expr -> prim
 (define parse-error-tag 'parse-error)
 (define (raise-parse-error expr)
   (raise (tag parse-error-tag expr)))
+
+; returns (mid-prims last-prim)
+(define (parse-body body error-expr)
+  (let parse-exprs
+    ( (mid-prims-rev (list))
+      (exprs body))
+    (cond
+      ((match? '(_) exprs)
+        (let*
+          ( (last-expr (car exprs))
+            (last-prim (parse-expr last-expr))
+            (mid-prims (reverse mid-prims-rev)))
+          (list mid-prims last-prim)))
+      ((match? '(_ . _) exprs)
+        (let*
+          ( (mid-expr (car exprs))
+            (mid-prim (parse-expr mid-expr)))
+          (parse-exprs
+            (cons mid-prim mid-prims-rev)
+            (cdr exprs))))
+      (else (raise-parse-error error-expr)))))
 
 (define (parse-expr expr)
   (cond
@@ -96,6 +133,17 @@
     ((boolean? expr) (tag prim-const-tag expr))
     ((string? expr) (tag prim-const-tag expr))
     ((null? expr) (tag prim-const-tag expr))
+    ((match? '('lambda . _) expr)
+      (cond
+        ((match? '((* symbol (or () symbol)) . _) (cdr expr))
+          (let*
+            ( (arg (cadr expr))
+              (body (cddr expr))
+              (body-parsed (parse-body body expr))
+              (mid-prims (car body-parsed))
+              (last-prim (cadr body-parsed)))
+            (prim-lambda-tagged arg mid-prims last-prim)))
+        (else (raise-parse-error expr))))
     ((list? expr)
       (let
         ( (prims
@@ -120,6 +168,17 @@
 (define (v-builtin.proc builtin) (cadddr builtin))
 ;; lambda
 (define v-lambda-tag 'v-lambda)
+(define (v-lambda-tagged env arg mid-prims last-prim)
+  (tag v-lambda-tag (list env arg mid-prims last-prim)))
+(define (v-lambda.env lam) (car lam))
+(define (v-lambda.arg lam) (cadr lam))
+(define (v-lambda.argn-min lam)
+  (let count ((arg (v-lambda.arg lam)) (n 0))
+    (cond
+      ((pair? arg) (count (cdr arg) (+ n 1)))
+      (else n))))
+(define (v-lambda.mid-prims lam) (caddr lam))
+(define (v-lambda.last-prim lam) (cadddr lam))
 ;; pair
 (define v-pair-tag 'v-pair)
 ;; error
@@ -142,6 +201,13 @@
         (display "[built-in ")
         (display name)
         (display "]")))
+    ((tagged? v-lambda-tag v)
+      (let*
+        ( (lam (untag v))
+          (arg (v-lambda.arg lam)))
+        (display "[lambda ")
+        (write arg)
+        (display " ...]")))
     ((tagged? v-pair-tag v)
       (let*
         ( (v (untag v))
@@ -158,8 +224,10 @@
             (display " . ")
             (v-print base-print #t d)))
         (if (not is-cdr) (display ")"))))
+    ((tagged? v-error-tag v)
+      (display "[error]"))
     (else
-      (display "[not-implemented: ")
+      (display "[?: ")
       (write v)
       (display "]"))))
 
@@ -245,6 +313,13 @@
         (else
           (raise-v-error "unknown location: " (msg-w prim)))))
     ((tagged? prim-const-tag prim) (untag prim))
+    ((tagged? prim-lambda-tag prim)
+      (let*
+        ( (lam (untag prim))
+          (arg (prim-lambda.arg lam))
+          (mid-prims (prim-lambda.mid-prims lam))
+          (last-prim (prim-lambda.last-prim lam)))
+        (v-lambda-tagged env arg mid-prims last-prim)))
     ((tagged? prim-call-tag prim)
       (let*
         ( (prim (untag prim))
@@ -257,6 +332,11 @@
             (map
               (lambda (p) (eval-prim p top-env env))
               args-prim)))
+        (define (raise-argn-error required got)
+          (raise-v-error
+            "wrong number of arguments: required "
+            required ", but got " argn "\n"
+            (msg-w expr)))
         (cond
           ; built-in procedure
           ((tagged? v-builtin-tag callee-v)
@@ -275,11 +355,32 @@
                     ((tagged? v-error-tag err)
                       (raise-v-error name ": " (untag err) "\n" (msg-w expr))))
                   (proc args-v))
-                (raise-v-error
-                  "wrong number of arguments: "
-                  name " requires " argn-min ", but got " argn
-                  "\n"
-                  (msg-w expr)))))
+                (raise-argn-error argn-min argn))))
+          ; lambda
+          ((tagged? v-lambda-tag callee-v)
+            (let*
+              ( (lam (untag callee-v))
+                (lam-arg (v-lambda.arg lam))
+                (mid-prims (v-lambda.mid-prims lam))
+                (last-prim (v-lambda.last-prim lam))
+                (lam-env
+                  (let bind
+                    ( (lam-env (v-lambda.env lam))
+                      (lam-arg lam-arg)
+                      (args-v args-v))
+                    (cond
+                      ((symbol? lam-arg) (env-extend lam-arg args-v lam-env))
+                      ((and (null? lam-arg) (null? args-v)) lam-env)
+                      ((and (pair? lam-arg) (pair? args-v))
+                        (bind
+                          (env-extend (car lam-arg) (car args-v) lam-env)
+                          (cdr lam-arg)
+                          (cdr args-v)))
+                      (else (raise-argn-error (v-lambda.argn-min lam) argn))))) )
+              (for-each
+                (lambda (prim) (eval-prim prim top-env lam-env))
+                mid-prims)
+              (eval-prim last-prim top-env lam-env)))
           ; procedure ではない
           (else (raise-v-error "invalid application: " (msg-w expr))))))
     (else (error "eval-prim: fatal error:" prim))))
