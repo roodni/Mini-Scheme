@@ -198,6 +198,8 @@
 (define v-pair-tag 'v-pair)
 (define (v-pair-tagged kar kdr)
   (tag v-pair-tag (cons kar kdr)))
+(define (v-pair.car p) (car p))
+(define (v-pair.cdr p) (cdr p))
 ;; error
 (define v-error-tag 'v-error)
 (define (raise-v-error . l)
@@ -228,8 +230,8 @@
     ((tagged? v-pair-tag v)
       (let*
         ( (v (untag v))
-          (a (car v))
-          (d (cdr v)))
+          (a (v-pair.car v))
+          (d (v-pair.cdr v)))
         (if (not is-cdr) (display "("))
         (v-print base-print #f a)
         (cond
@@ -260,8 +262,8 @@
     ((tagged? v-pair-tag v)
       (let ((v (untag v)))
         (cons
-          (v->obj (car v))
-          (v->obj (cdr v)))))
+          (v->obj (v-pair.car v))
+          (v->obj (v-pair.cdr v)))))
     (else (error "cannot convert to obj:" v))))
 
 
