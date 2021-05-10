@@ -105,6 +105,22 @@
 (define (raise-parse-error expr)
   (raise (tag parse-error-tag expr)))
 
+; returns (var prim)
+(define (parse-define def)
+  (cond
+    ((match? '('define symbol _) def)
+      (list (cadr def) (parse-expr (caddr def))))
+    ((match? '('define (symbol . (* symbol (or () symbol))) . _) def)
+      (let*
+        ( (var-and-arg (cadr def))
+          (var (car var-and-arg))
+          (arg (cdr var-and-arg))
+          (body-parsed (parse-body (cddr def) def))
+          (mid-prims (car body-parsed))
+          (last-prim (cadr body-parsed)))
+        (list var (prim-lambda-tagged arg mid-prims last-prim))))
+    (else (raise-parse-error def))))
+
 ; returns (mid-prims last-prim)
 (define (parse-body body error-expr)
   (let parse-exprs
@@ -138,8 +154,7 @@
         ((match? '((* symbol (or () symbol)) . _) (cdr expr))
           (let*
             ( (arg (cadr expr))
-              (body (cddr expr))
-              (body-parsed (parse-body body expr))
+              (body-parsed (parse-body (cddr expr) expr))
               (mid-prims (car body-parsed))
               (last-prim (cadr body-parsed)))
             (prim-lambda-tagged arg mid-prims last-prim)))
@@ -181,6 +196,8 @@
 (define (v-lambda.last-prim lam) (cadddr lam))
 ;; pair
 (define v-pair-tag 'v-pair)
+(define (v-pair-tagged kar kdr)
+  (tag v-pair-tag (cons kar kdr)))
 ;; error
 (define v-error-tag 'v-error)
 (define (raise-v-error . l)
@@ -278,7 +295,7 @@
       (lambda (args)
         (define a (car args))
         (define d (cadr args))
-        (tag v-pair-tag (cons a d))))
+        (v-pair-tagged a d)))
     (env-bind-builtin '+ 0 #t
       (lambda (args)
         (fold
@@ -360,16 +377,19 @@
           ((tagged? v-lambda-tag callee-v)
             (let*
               ( (lam (untag callee-v))
-                (lam-arg (v-lambda.arg lam))
                 (mid-prims (v-lambda.mid-prims lam))
                 (last-prim (v-lambda.last-prim lam))
                 (lam-env
                   (let bind
                     ( (lam-env (v-lambda.env lam))
-                      (lam-arg lam-arg)
+                      (lam-arg (v-lambda.arg lam))
                       (args-v args-v))
                     (cond
-                      ((symbol? lam-arg) (env-extend lam-arg args-v lam-env))
+                      ((symbol? lam-arg)
+                        (env-extend
+                          lam-arg
+                          (fold-right v-pair-tagged '() args-v)
+                          lam-env))
                       ((and (null? lam-arg) (null? args-v)) lam-env)
                       ((and (pair? lam-arg) (pair? args-v))
                         (bind
@@ -389,13 +409,13 @@
 ; returns (value top-env)
 (define (eval-toplevel toplevel top-env)
   (cond
-    ((match? '('define symbol _) toplevel)
+    ((match? '('define . _) toplevel)
       (let*
-        ( (var (cadr toplevel))
-          (expr (caddr toplevel))
-          (prim (parse-expr expr))
+        ( (def-parsed (parse-define toplevel))
+          (var (car def-parsed))
+          (prim (cadr def-parsed))
           (value (eval-prim prim env-empty top-env)))
-        (list '() (env-define var value top-env))))
+        (list v-command-ret (env-define var value top-env))))
     (else
       (let*
         ( (prim (parse-expr toplevel))

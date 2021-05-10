@@ -13,7 +13,43 @@
       (display ".")
       (error "fail" expected obj))))
 
-; todo: 可変長引数のテスト 評価順序のテスト
+; todo: 評価順序のテスト
+
+; (mini-test #t '(
+;   (define (even? x)
+;     (if (= x 0) #t (odd? (- x 1))))
+;   (define (odd? x)
+;     (if (= x 0) #f (even? (- x 1))))
+;   (even? 1000000000)
+; ))
+
+; define (手続きの定義)
+(mini-test '(1 2 . (3 4 5)) '(
+  (define (f x y . z)
+    (cons x (cons y z)))
+  (f 1 2 3 4 5)
+))
+
+(mini-test '(1 2 3 4) '(
+  (define (f . l) l)
+  (f 1 2 3 4)
+))
+
+(mini-test 3 '(
+  (define (f a b) (+ a b))
+  (f 1 2)
+))
+
+; lambda
+(mini-test '(1 2 3 4 5) '(
+  ((lambda l l) 1 2 3 4 5)
+))
+
+(mini-test '(1 2 . (3 4 5)) '(
+  ((lambda (x y . z)
+      (cons x (cons y z)))
+    1 2 3 4 5)
+))
 
 (mini-test 123 '(
   (define s
@@ -36,6 +72,7 @@
   ((lambda (a b) (+ a b)) 1 2)
 ))
 
+; built-in +
 (mini-test 6 '(
   (+ 1 2 3)
 ))
@@ -44,10 +81,12 @@
   (+)
 ))
 
+; built-in cons
 (mini-test (list 1 2 3) '(
   (cons 1 (cons 2 (cons 3 ())))
 ))
 
+; define (単純)
 (mini-test 456 '(
   (define hello 123)
   (define hello 456)
@@ -59,6 +98,7 @@
   hello
 ))
 
+; const
 (mini-test #t '(
   #t
 ))

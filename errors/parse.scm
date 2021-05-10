@@ -1,6 +1,18 @@
 (load "./check-error.scm")
 
 (check-error '(
+  (define (x y . 1) 1)
+))
+
+(check-error '(
+  (define () 1)
+))
+
+(check-error '(
+  (define)
+))
+
+(check-error '(
   (lambda (a) (1 . 2))
 ))
 
