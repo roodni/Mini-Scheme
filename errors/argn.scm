@@ -13,6 +13,14 @@
   ((lambda (x) x))
 ))
 
+; built-in =
+(check-error '(
+  (=)
+))
+(check-error '(
+  (= 0)
+))
+
 ; built-in -
 (check-error '(
   (-)

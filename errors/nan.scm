@@ -1,14 +1,20 @@
 (load "./check-error.scm")
 
+; =
+(check-error '(
+  (= #t #f)
+))
 
-(check-error (quote (
+; -
+(check-error '(
+  (- 1 #f)
+))
 
-(+ "hello")
+; +
+(check-error '(
+  (+ "hello")
+))
 
-)))
-
-(check-error (quote (
-
-(+ 1 "hello" 3)
-
-)))
+(check-error '(
+  (+ 1 "hello" 3)
+))

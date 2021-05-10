@@ -72,6 +72,27 @@
   ((lambda (a b) (+ a b)) 1 2)
 ))
 
+; built-in =
+(mini-test #f '(
+  (= 1 1 1 2)
+))
+
+(mini-test #f '(
+  (= 1 0 1 1)
+))
+
+(mini-test #t '(
+  (= 1 1 1 1)
+))
+
+(mini-test #f '(
+  (= 1 2)
+))
+
+(mini-test #t '(
+  (= 1 1)
+))
+
 ; built-in -
 (mini-test -7 '(
   (- 1 3 5)

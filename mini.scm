@@ -315,6 +315,16 @@
         (cond
           ((null? (cdr args)) (- (car args)))
           (else (fold-left - (car args) (cdr args))))))
+    (env-bind-builtin '= 2 #t
+      (lambda (args)
+        (expect-number-list args)
+        (let loop ((args args))
+          (define kar (car args))
+          (define kdr (cdr args))
+          (cond
+            ((null? kdr) #t)
+            ((= kar (car kdr)) (loop kdr))
+            (else #f)))))
     (env-bind-builtin 'display 1 #f
       (lambda (args)
         (v-display (car args))
