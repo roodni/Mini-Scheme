@@ -1,5 +1,6 @@
 (load "./check-error.scm")
 
+; lambda
 (check-error '(
   ((lambda (x y . z) x) 1)
 ))
@@ -12,6 +13,12 @@
   ((lambda (x) x))
 ))
 
+; built-in -
+(check-error '(
+  (-)
+))
+
+; built-in cons
 (check-error '(
   (cons 1)
 ))

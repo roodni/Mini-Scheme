@@ -292,6 +292,13 @@
       (v-builtin-tagged
         (symbol->string var)
         argn-min variadic proc)))
+  (define (raise-nan-error v)
+    (raise-v-error "number required, but got " (msg-v v)))
+  (define (expect-number-list vl)
+    (for-each
+      (lambda (x)
+        (if (not (number? x)) (raise-nan-error x)))
+      vl))
   (list
     (env-bind-builtin 'cons 2 #f
       (lambda (args)
@@ -300,12 +307,14 @@
         (v-pair-tagged a d)))
     (env-bind-builtin '+ 0 #t
       (lambda (args)
-        (fold
-          (lambda (v total)
-            (if (number? v)
-              (+ v total)
-              (raise-v-error "number required, but got " (msg-v v))))
-          0 args)))
+        (expect-number-list args)
+        (fold + 0 args)))
+    (env-bind-builtin '- 1 #t
+      (lambda (args)
+        (expect-number-list args)
+        (cond
+          ((null? (cdr args)) (- (car args)))
+          (else (fold-left - (car args) (cdr args))))))
     (env-bind-builtin 'display 1 #f
       (lambda (args)
         (v-display (car args))

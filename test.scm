@@ -72,6 +72,19 @@
   ((lambda (a b) (+ a b)) 1 2)
 ))
 
+; built-in -
+(mini-test -7 '(
+  (- 1 3 5)
+))
+
+(mini-test 2 '(
+  (- 3 1)
+))
+
+(mini-test -10 '(
+  (- 10)
+))
+
 ; built-in +
 (mini-test 6 '(
   (+ 1 2 3)
