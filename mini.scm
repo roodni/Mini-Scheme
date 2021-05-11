@@ -81,9 +81,9 @@
 
 
 ;;; prim (実行可能な式)
-;; 定数式
+;; const
 (define prim-const-tag 'prim-const)
-;; 手続き呼び出し
+;; call
 (define prim-call-tag 'prim-call)
 (define (prim-call-tagged callee args expr)
   (assert (list? args))
@@ -91,7 +91,7 @@
 (define (prim-call.callee prim) (car prim))
 (define (prim-call.args prim) (cadr prim))
 (define (prim-call.expr prim) (caddr prim))
-;; 手続き
+;; lambda
 (define prim-lambda-tag 'prim-lambda)
 (define (prim-lambda-tagged arg mid-prims last-prim)
   (assert (list? mid-prims))
@@ -99,6 +99,13 @@
 (define (prim-lambda.arg prim) (car prim))
 (define (prim-lambda.mid-prims prim) (cadr prim))
 (define (prim-lambda.last-prim prim) (caddr prim))
+;; if
+(define prim-if-tag 'prim-if)
+(define (prim-if-tagged condition th el)
+  (tag prim-if-tag (list condition th el)))
+(define (prim-if.cond i) (car i))
+(define (prim-if.then i) (cadr i))
+(define (prim-if.else i) (caddr i))
 
 ;; expr -> prim
 (define parse-error-tag 'parse-error)
@@ -158,6 +165,20 @@
               (mid-prims (car body-parsed))
               (last-prim (cadr body-parsed)))
             (prim-lambda-tagged arg mid-prims last-prim)))
+        (else (raise-parse-error expr))))
+    ((match? '('if . _) expr)
+      (cond
+        ((match? '(_ _ . (or (_) ())) (cdr expr))
+          (let*
+            ( (condition (cadr expr))
+              (th (caddr expr))
+              (el-opt (cdddr expr)))
+            (prim-if-tagged
+              (parse-expr condition)
+              (parse-expr th)
+              (if (null? el-opt)
+                (tag prim-const-tag v-command-ret)
+                (parse-expr (car el-opt))))))
         (else (raise-parse-error expr))))
     ((list? expr)
       (let
@@ -358,6 +379,15 @@
           (mid-prims (prim-lambda.mid-prims lam))
           (last-prim (prim-lambda.last-prim lam)))
         (v-lambda-tagged env arg mid-prims last-prim)))
+    ((tagged? prim-if-tag prim)
+      (let*
+        ( (i (untag prim))
+          (co (prim-if.cond i))
+          (th (prim-if.then i))
+          (el (prim-if.else i)))
+        (if (eval-prim co top-env env)
+          (eval-prim th top-env env)
+          (eval-prim el top-env env))))
     ((tagged? prim-call-tag prim)
       (let*
         ( (prim (untag prim))

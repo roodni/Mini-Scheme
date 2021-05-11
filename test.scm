@@ -13,6 +13,19 @@
       (display ".")
       (error "fail" expected obj))))
 
+; if
+(mini-test 1 '(
+  (if #t 1 2)
+))
+
+(mini-test 2 '(
+  (if #f 1 2)
+))
+
+(mini-test "hello" '(
+  (if 1 "hello")
+))
+
 ; todo: 評価順序のテスト
 
 ; (mini-test #t '(
@@ -39,6 +52,7 @@
   (define (f a b) (+ a b))
   (f 1 2)
 ))
+
 
 ; lambda
 (mini-test '(1 2 3 4 5) '(
