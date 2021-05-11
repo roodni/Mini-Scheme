@@ -1,5 +1,22 @@
 (load "./check-error.scm")
 
+; set!
+(check-error '(
+  (set! x 1 2)
+))
+
+(check-error '(
+  (set! 0 1)
+))
+
+(check-error '(
+  (set! x)
+))
+
+(check-error '(
+  (set!)
+))
+
 ; if
 (check-error '(
   (if 1 2 3 4)

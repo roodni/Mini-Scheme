@@ -1,7 +1,9 @@
 (load "./check-error.scm")
 
-(check-error (quote (
+(check-error '(
+  (set! hao 123)
+))
 
-hello
-
-)))
+(check-error '(
+  hello
+))

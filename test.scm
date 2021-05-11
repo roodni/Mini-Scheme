@@ -15,7 +15,40 @@
         (flush))
       (else (error "fail" expected obj)))))
 
+; set!
+(mini-test '(3 2 1) '(
+  (define st ())
+  (define (push v)
+    (set! st (cons v st)))
+  (push 1)
+  (push 2)
+  (push 3)
+  st
+))
+
+(mini-test 200 '(
+  (define (f x)
+    (set! x 200)
+    x)
+  (f 100)
+))
+
+(mini-test 2 '(
+  (define x 1)
+  (set! x 2)
+  x
+))
+
 ; if
+(mini-test '("t") '(
+  (define st ())
+  (define (push v)
+    (set! st (cons v st)))
+  (if #f (push "f"))
+  (if #t (push "t"))
+  st
+))
+
 (mini-test 1 '(
   (if #t 1 2)
 ))
@@ -28,7 +61,15 @@
   (if 1 "hello")
 ))
 
-; todo: 評価順序のテスト
+; define (手続きの定義)
+(mini-test 123 '(
+  (define n 0)
+  (define (f i)
+    (set! n (+ n n n n n n n n n n i)))
+  (define (g)
+    (f 1) (f 2) (f 3) n)
+  (g)
+))
 
 (mini-test #f '(
   (define (even? x)
@@ -46,7 +87,6 @@
   (even? 1000)
 ))
 
-; define (手続きの定義)
 (mini-test '(1 2 . (3 4 5)) '(
   (define (f x y . z)
     (cons x (cons y z)))

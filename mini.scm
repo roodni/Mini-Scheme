@@ -106,6 +106,13 @@
 (define (prim-if.cond i) (car i))
 (define (prim-if.then i) (cadr i))
 (define (prim-if.else i) (caddr i))
+;; set!
+(define prim-set!-tag 'prim-set!)
+(define (prim-set!-tagged var prim)
+  (assert (symbol? var))
+  (tag prim-set!-tag (list var prim)))
+(define (prim-set!.var set) (car set))
+(define (prim-set!.prim set) (cadr set))
 
 ;; expr -> prim
 (define parse-error-tag 'parse-error)
@@ -179,6 +186,13 @@
               (if (null? el-opt)
                 (tag prim-const-tag v-command-ret)
                 (parse-expr (car el-opt))))))
+        (else (raise-parse-error expr))))
+    ((match? '('set! . _) expr)
+      (cond
+        ((match? '(symbol _) (cdr expr))
+          (prim-set!-tagged
+            (cadr expr)
+            (parse-expr (caddr expr))))
         (else (raise-parse-error expr))))
     ((list? expr)
       (let
@@ -291,24 +305,25 @@
 ;;; env
 (define (env-bind var value) (cons var value))
 (define (env-bind.value bind) (cdr bind))
+(define (env-bind-set! bind value) (set-cdr! bind value))
 
 (define (env-lookup var env)
   (assoc var env))
 (define (env-extend var value env)
-  (cons (cons var value) env))
+  (cons (env-bind var value) env))
 (define (env-define var value env)
   (let ((bind (env-lookup var env)))
-    (if bind
-      (begin
-        (set-cdr! bind value)
+    (cond
+      (bind
+        (env-bind-set! bind value)
         env)
-      (env-extend var value env))))
+      (else (env-extend var value env)))))
 
 (define env-empty '())
 
 (define (env-init)
   (define (env-bind-builtin var argn-min variadic proc)
-    (cons
+    (env-bind
       var
       (v-builtin-tagged
         (symbol->string var)
@@ -366,11 +381,22 @@
 (define (eval-prim prim top-env env)
   (cond
     ((symbol? prim)
-      (cond
-        ((env-lookup prim env) => env-bind.value)
-        ((env-lookup prim top-env) => env-bind.value)
-        (else
-          (raise-v-error "unknown location: " (msg-w prim)))))
+      (env-bind.value
+        (or (env-lookup prim env)
+            (env-lookup prim top-env)
+            (raise-v-error "unknown location: " (msg-w prim)))))
+    ((tagged? prim-set!-tag prim)
+      (let*
+        ( (set (untag prim))
+          (var (prim-set!.var set))
+          (bind
+            (or (env-lookup var env)
+                (env-lookup var top-env)
+                (raise-v-error "unknown location: " (msg-w var))))
+          (prim (prim-set!.prim set))
+          (value (eval-prim prim top-env env)))
+        (env-bind-set! bind value)
+        v-command-ret))
     ((tagged? prim-const-tag prim) (untag prim))
     ((tagged? prim-lambda-tag prim)
       (let*
