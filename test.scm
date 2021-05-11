@@ -27,6 +27,7 @@
 ))
 
 (mini-test 200 '(
+  (define x 12345)
   (define (f x)
     (set! x 200)
     x)
@@ -69,6 +70,23 @@
   (define (g)
     (f 1) (f 2) (f 3) n)
   (g)
+))
+
+(mini-test 100 '(
+  (define (x) y)
+  (define y 100)
+  ((lambda (y) (x)) 200)
+))
+
+(mini-test 200 '(
+  (define y 100)
+  ((lambda (y) y) 200)
+))
+
+(mini-test 100 '(
+  (define (x) y)
+  (define y 100)
+  (x)
 ))
 
 (mini-test #f '(
