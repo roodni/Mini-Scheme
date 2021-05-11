@@ -9,9 +9,11 @@
             (eval-toplevel toplevel env))
           (list #t (env-init)) toplevel-list))
       (obj (v->obj (car res))) )
-    (if (equal? expected obj)
-      (display ".")
-      (error "fail" expected obj))))
+    (cond
+      ((equal? expected obj)
+        (display ".")
+        (flush))
+      (else (error "fail" expected obj)))))
 
 ; if
 (mini-test 1 '(
@@ -28,13 +30,21 @@
 
 ; todo: 評価順序のテスト
 
-; (mini-test #t '(
-;   (define (even? x)
-;     (if (= x 0) #t (odd? (- x 1))))
-;   (define (odd? x)
-;     (if (= x 0) #f (even? (- x 1))))
-;   (even? 1000000000)
-; ))
+(mini-test #f '(
+  (define (even? x)
+    (if (= x 0) #t (odd? (- x 1))))
+  (define (odd? x)
+    (if (= x 0) #f (even? (- x 1))))
+  (even? 1001)
+))
+
+(mini-test #t '(
+  (define (even? x)
+    (if (= x 0) #t (odd? (- x 1))))
+  (define (odd? x)
+    (if (= x 0) #f (even? (- x 1))))
+  (even? 1000)
+))
 
 ; define (手続きの定義)
 (mini-test '(1 2 . (3 4 5)) '(
