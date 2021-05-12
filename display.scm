@@ -1,1 +1,0 @@
-(load "./mini.scm")
