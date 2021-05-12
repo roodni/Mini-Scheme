@@ -1,6 +1,20 @@
 (load "./mini.scm")
 
 (eval-toplevel-list '(
+  (define l (cons 1 (cons 2 ())))
+  (set-car! (cdr l) l)
+  (write l)
+) (env-init))
+(newline)
+
+(eval-toplevel-list '(
+  (define l (cons 1 (cons 2 ())))
+  (set-cdr! (cdr l) l)
+  (write l)
+) (env-init))
+(newline)
+
+(eval-toplevel-list '(
   (write (cons 1 (cons (cons 2 (cons "A" "B")) (cons 3 4))))
 ) (env-init))
 (newline)

@@ -244,51 +244,61 @@
 ;; 命令の戻り値
 (define v-command-ret '())
 
-(define (v-print base-print is-cdr v)
-  (cond
-    ((number? v) (base-print v))
-    ((boolean? v) (base-print v))
-    ((string? v) (base-print v))
-    ((null? v) (base-print v))
-    ((tagged? v-builtin-tag v)
-      (let*
-        ( (v (untag v))
-          (name (v-builtin.name v)))
-        (display "[built-in ")
-        (display name)
-        (display "]")))
-    ((tagged? v-lambda-tag v)
-      (let*
-        ( (lam (untag v))
-          (arg (v-lambda.arg lam)))
-        (display "[lambda ")
-        (write arg)
-        (display " ...]")))
-    ((tagged? v-pair-tag v)
-      (let*
-        ( (v (untag v))
-          (a (v-pair.car v))
-          (d (v-pair.cdr v)))
-        (if (not is-cdr) (display "("))
-        (v-print base-print #f a)
+(define (v-print base-print v)
+  (let v-print
+    ( (is-cdr #f)
+      (pair-memo '())
+      (v v))
+    (cond
+      ((number? v) (base-print v))
+      ((boolean? v) (base-print v))
+      ((string? v) (base-print v))
+      ((null? v) (base-print v))
+      ((tagged? v-builtin-tag v)
+        (let*
+          ( (v (untag v))
+            (name (v-builtin.name v)))
+          (display "[built-in ")
+          (display name)
+          (display "]")))
+      ((tagged? v-lambda-tag v)
+        (let*
+          ( (lam (untag v))
+            (arg (v-lambda.arg lam)))
+          (display "[lambda ")
+          (write arg)
+          (display " ...]")))
+      ((tagged? v-pair-tag v)
         (cond
-          ((null? d) 'do-nothing)
-          ((tagged? v-pair-tag d)
-            (display " ")
-            (v-print base-print #t d))
+          ((memq v pair-memo)
+            (if is-cdr (display ". "))
+            (display "[circular]"))
           (else
-            (display " . ")
-            (v-print base-print #t d)))
-        (if (not is-cdr) (display ")"))))
-    ((tagged? v-error-tag v)
-      (display "[error]"))
-    (else
-      (display "[?: ")
-      (write v)
-      (display "]"))))
+            (let*
+              ( (pair-memo (cons v pair-memo))
+                (v (untag v))
+                (a (v-pair.car v))
+                (d (v-pair.cdr v)))
+              (if (not is-cdr) (display "("))
+              (v-print #f pair-memo a)
+              (cond
+                ((null? d) 'do-nothing)
+                ((tagged? v-pair-tag d)
+                  (display " ")
+                  (v-print #t pair-memo d))
+                (else
+                  (display " . ")
+                  (v-print #f pair-memo d)))
+              (if (not is-cdr) (display ")"))))))
+      ((tagged? v-error-tag v)
+        (display "[error]"))
+      (else
+        (display "[?: ")
+        (write v)
+        (display "]")))))
 
-(define (v-display v) (v-print display #f v))
-(define (v-write v) (v-print write #f v))
+(define (v-display v) (v-print display v))
+(define (v-write v) (v-print write v))
 
 (define (v->obj v)
   (cond
