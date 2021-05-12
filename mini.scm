@@ -235,6 +235,8 @@
   (tag v-pair-tag (cons kar kdr)))
 (define (v-pair.car p) (car p))
 (define (v-pair.cdr p) (cdr p))
+(define (v-pair.set-car! p v) (set-car! p v))
+(define (v-pair.set-cdr! p v) (set-cdr! p v))
 ;; error
 (define v-error-tag 'v-error)
 (define (raise-v-error . l)
@@ -328,12 +330,12 @@
       (v-builtin-tagged
         (symbol->string var)
         argn-min variadic proc)))
-  (define (raise-nan-error v)
-    (raise-v-error "number required, but got " (msg-v v)))
+  (define (raise-type-error ty v)
+    (raise-v-error ty " required, but got " (msg-v v)))
   (define (expect-number-list vl)
     (for-each
       (lambda (x)
-        (if (not (number? x)) (raise-nan-error x)))
+        (if (not (number? x)) (raise-type-error "number" x)))
       vl))
   (list
     (env-bind-builtin 'cons 2 #f
@@ -341,6 +343,36 @@
         (define a (car args))
         (define d (cadr args))
         (v-pair-tagged a d)))
+    (env-bind-builtin 'car 1 #f
+      (lambda (args)
+        (define p (car args))
+        (cond
+          ((tagged? v-pair-tag p) (v-pair.car (untag p)))
+          (else (raise-type-error "pair" p)))))
+    (env-bind-builtin 'cdr 1 #f
+      (lambda (args)
+        (define p (car args))
+        (cond
+          ((tagged? v-pair-tag p) (v-pair.cdr (untag p)))
+          (else (raise-type-error "pair" p)))))
+    (env-bind-builtin 'set-car! 2 #f
+      (lambda (args)
+        (define p (car args))
+        (define v (cadr args))
+        (cond
+          ((tagged? v-pair-tag p)
+            (v-pair.set-car! (untag p) v)
+            v-command-ret)
+          (else (raise-type-error "pair" p)))))
+    (env-bind-builtin 'set-cdr! 2 #f
+      (lambda (args)
+        (define p (car args))
+        (define v (cadr args))
+        (cond
+          ((tagged? v-pair-tag p)
+            (v-pair.set-cdr! (untag p) v)
+            v-command-ret)
+          (else (raise-type-error "pair" p)))))
     (env-bind-builtin '+ 0 #t
       (lambda (args)
         (expect-number-list args)

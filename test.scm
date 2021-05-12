@@ -10,7 +10,48 @@
         (flush))
       (else (error "fail" expected obj)))))
 
+; set-car! set-cdr!
+(mini-test 2 '(
+  (define l (cons 1 (cons 3 ())))
+  (set-cdr! (cdr l) l)
+  (-  (car (cdr (cdr (cdr (cdr (cdr l))))))
+      (car (cdr (cdr l))))
+))
+
+(mini-test v-command-ret '(
+  (define p (cons 1 2))
+  (set-car! p 200)
+))
+
+(mini-test v-command-ret '(
+  (define p (cons 1 2))
+  (set-cdr! p 200)
+))
+
+(mini-test '(1 . 200) '(
+  (define p (cons 1 2))
+  (set-cdr! p 200)
+  p
+))
+
+(mini-test '(100 . 2) '(
+  (define p (cons 1 2))
+  (set-car! p 100)
+  p
+))
+
+; car cdr
+(mini-test 2 '(
+  (define a (cons 1 (cons 2 (cons 3 ()))))
+  (car (cdr a))
+))
+
 ; set!
+(mini-test v-command-ret '(
+  (define x 0)
+  (set! x 1)
+))
+
 (mini-test '(3 2 1) '(
   (define st ())
   (define (push v)
@@ -55,6 +96,10 @@
 
 (mini-test "hello" '(
   (if 1 "hello")
+))
+
+(mini-test v-command-ret '(
+  (if #f "hello")
 ))
 
 ; define (手続きの定義)
@@ -198,6 +243,10 @@
 ))
 
 ; define (単純)
+(mini-test v-command-ret '(
+  (define x 0)
+))
+
 (mini-test 456 '(
   (define hello 123)
   (define hello 456)
@@ -220,4 +269,8 @@
 
 (mini-test 1 '(
   1
+))
+
+(mini-test '() '(
+  ()
 ))
