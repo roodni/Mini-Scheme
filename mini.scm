@@ -507,6 +507,23 @@
     (list v-command-ret top-env)
     toplevel-list))
 
+;;; test
+(define (expect-error toplevel-list)
+  (guard
+    (err
+      ((tagged? v-error-tag err)
+        (msg-print (untag err))
+        (newline))
+      ((tagged? parse-error-tag err)
+        (display "syntax error: ")
+        (write (untag err))
+        (newline)))
+    (eval-toplevel-list toplevel-list (env-init))
+    (display "no error occured:\n")
+    (write toplevel-list)
+    (newline)
+    (exit 1)))
+
 ;;; repl
 (define (mini-repl)
   (display "mini-scheme intepreter\n")
@@ -536,7 +553,7 @@
                       (msg-print (untag condition))
                       'error)
                     ((tagged? parse-error-tag condition)
-                      (display "parse error: ")
+                      (display "syntax error: ")
                       (write (untag condition))
                       'error))
                   (tag 'ok

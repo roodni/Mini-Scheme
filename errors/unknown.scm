@@ -1,14 +1,14 @@
-(load "./check-error.scm")
+(load "./mini.scm")
 
-(check-error '(
+(expect-error '(
   (define x y)
   (define y 100)
 ))
 
-(check-error '(
+(expect-error '(
   (set! hao 123)
 ))
 
-(check-error '(
+(expect-error '(
   hello
 ))

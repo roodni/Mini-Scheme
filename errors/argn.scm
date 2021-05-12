@@ -1,36 +1,36 @@
-(load "./check-error.scm")
+(load "./mini.scm")
 
 ; lambda
-(check-error '(
+(expect-error '(
   ((lambda (x y . z) x) 1)
 ))
 
-(check-error '(
+(expect-error '(
   ((lambda (x) x) 1 2)
 ))
 
-(check-error '(
+(expect-error '(
   ((lambda (x) x))
 ))
 
 ; built-in =
-(check-error '(
+(expect-error '(
   (=)
 ))
-(check-error '(
+(expect-error '(
   (= 0)
 ))
 
 ; built-in -
-(check-error '(
+(expect-error '(
   (-)
 ))
 
 ; built-in cons
-(check-error '(
+(expect-error '(
   (cons 1)
 ))
 
-(check-error '(
+(expect-error '(
   (cons 1 2 3)
 ))

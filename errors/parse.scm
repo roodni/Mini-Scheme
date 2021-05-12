@@ -1,62 +1,62 @@
-(load "./check-error.scm")
+(load "./mini.scm")
 
 ; set!
-(check-error '(
+(expect-error '(
   (set! x 1 2)
 ))
 
-(check-error '(
+(expect-error '(
   (set! 0 1)
 ))
 
-(check-error '(
+(expect-error '(
   (set! x)
 ))
 
-(check-error '(
+(expect-error '(
   (set!)
 ))
 
 ; if
-(check-error '(
+(expect-error '(
   (if 1 2 3 4)
 ))
 
-(check-error '(
+(expect-error '(
   (if 1)
 ))
 
-(check-error '(
+(expect-error '(
   (if)
 ))
 
 ; define
-(check-error '(
+(expect-error '(
   (define (x y . 1) 1)
 ))
 
-(check-error '(
+(expect-error '(
   (define () 1)
 ))
 
-(check-error '(
+(expect-error '(
   (define)
 ))
 
 ; lambda
-(check-error '(
+(expect-error '(
   (lambda (a) (1 . 2))
 ))
 
-(check-error '(
+(expect-error '(
   (lambda (a))
 ))
 
-(check-error '(
+(expect-error '(
   (lambda 123 456)
 ))
 
 ; dotted list
-(check-error '(
+(expect-error '(
   (1 . 2)
 ))

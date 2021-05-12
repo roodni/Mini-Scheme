@@ -1,6 +1,6 @@
-(load "./check-error.scm")
+(load "./mini.scm")
 
-(check-error (quote (
+(expect-error (quote (
 
 (1 2)
 

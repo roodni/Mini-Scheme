@@ -1,5 +1,5 @@
-(load "./check-error")
+(load "./mini.scm")
 
-(check-error '(
+(expect-error '(
   (define x 1)
 ))

@@ -1,20 +1,20 @@
-(load "./check-error.scm")
+(load "./mini.scm")
 
 ; =
-(check-error '(
+(expect-error '(
   (= #t #f)
 ))
 
 ; -
-(check-error '(
+(expect-error '(
   (- 1 #f)
 ))
 
 ; +
-(check-error '(
+(expect-error '(
   (+ "hello")
 ))
 
-(check-error '(
+(expect-error '(
   (+ 1 "hello" 3)
 ))
