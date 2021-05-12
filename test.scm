@@ -2,12 +2,7 @@
 
 (define (mini-test expected toplevel-list)
   (let*
-    ( (res
-        (fold
-          (lambda (toplevel res)
-            (define env (cadr res))
-            (eval-toplevel toplevel env))
-          (list #t (env-init)) toplevel-list))
+    ( (res (eval-toplevel-list toplevel-list (env-init)))
       (obj (v->obj (car res))) )
     (cond
       ((equal? expected obj)

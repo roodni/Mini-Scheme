@@ -499,6 +499,13 @@
           (value (eval-prim prim top-env env-empty)))
         (list value top-env)))))
 
+(define (eval-toplevel-list toplevel-list top-env)
+  (fold
+    (lambda (toplevel res)
+      (define top-env (cadr res))
+      (eval-toplevel toplevel top-env))
+    (list v-command-ret top-env)
+    toplevel-list))
 
 ;;; repl
 (define (mini-repl)
