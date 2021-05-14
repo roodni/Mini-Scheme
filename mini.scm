@@ -91,14 +91,19 @@
 (define (prim-call.callee prim) (car prim))
 (define (prim-call.args prim) (cadr prim))
 (define (prim-call.expr prim) (caddr prim))
+;; begin
+(define prim-begin-tag 'prim-begin)
+(define (prim-begin-tagged mid-prims last-prim)
+  (assert (list? mid-prims))
+  (tag prim-begin-tag (list mid-prims last-prim)))
+(define (prim-begin.mid-prims b) (car b))
+(define (prim-begin.last-prim b) (cadr b))
 ;; lambda
 (define prim-lambda-tag 'prim-lambda)
-(define (prim-lambda-tagged arg mid-prims last-prim)
-  (assert (list? mid-prims))
-  (tag prim-lambda-tag (list arg mid-prims last-prim)))
+(define (prim-lambda-tagged arg body)
+  (tag prim-lambda-tag (list arg body)))
 (define (prim-lambda.arg prim) (car prim))
-(define (prim-lambda.mid-prims prim) (cadr prim))
-(define (prim-lambda.last-prim prim) (caddr prim))
+(define (prim-lambda.body prim) (cadr prim))
 ;; if
 (define prim-if-tag 'prim-if)
 (define (prim-if-tagged condition th el)
@@ -129,17 +134,21 @@
         ( (var-and-arg (cadr def))
           (var (car var-and-arg))
           (arg (cdr var-and-arg))
-          (body-parsed (parse-body (cddr def) def))
-          (mid-prims (car body-parsed))
-          (last-prim (cadr body-parsed)))
-        (list var (prim-lambda-tagged arg mid-prims last-prim))))
+          (body (parse-body (cddr def) def)))
+        (list var (prim-lambda-tagged arg body))))
     (else (raise-parse-error def))))
 
-; returns (mid-prims last-prim)
 (define (parse-body body error-expr)
-  (let parse-exprs
+  (let* ((parsed-expr+ (parse-expr+ body error-expr)))
+    (prim-begin-tagged
+      (car parsed-expr+)
+      (cadr parsed-expr+))))
+
+; returns (mid-prims last-prim)
+(define (parse-expr+ exprs error-expr)
+  (let parse-expr+
     ( (mid-prims-rev (list))
-      (exprs body))
+      (exprs exprs))
     (cond
       ((match? '(_) exprs)
         (let*
@@ -151,7 +160,7 @@
         (let*
           ( (mid-expr (car exprs))
             (mid-prim (parse-expr mid-expr)))
-          (parse-exprs
+          (parse-expr+
             (cons mid-prim mid-prims-rev)
             (cdr exprs))))
       (else (raise-parse-error error-expr)))))
@@ -168,10 +177,8 @@
         ((match? '((* symbol (or () symbol)) . _) (cdr expr))
           (let*
             ( (arg (cadr expr))
-              (body-parsed (parse-body (cddr expr) expr))
-              (mid-prims (car body-parsed))
-              (last-prim (cadr body-parsed)))
-            (prim-lambda-tagged arg mid-prims last-prim)))
+              (body (parse-body (cddr expr) expr)) )
+            (prim-lambda-tagged arg body)))
         (else (raise-parse-error expr))))
     ((match? '('if . _) expr)
       (cond
@@ -218,8 +225,8 @@
 (define (v-builtin.proc builtin) (cadddr builtin))
 ;; lambda
 (define v-lambda-tag 'v-lambda)
-(define (v-lambda-tagged env arg mid-prims last-prim)
-  (tag v-lambda-tag (list env arg mid-prims last-prim)))
+(define (v-lambda-tagged env arg body)
+  (tag v-lambda-tag (list env arg body)))
 (define (v-lambda.env lam) (car lam))
 (define (v-lambda.arg lam) (cadr lam))
 (define (v-lambda.argn-min lam)
@@ -227,8 +234,7 @@
     (cond
       ((pair? arg) (count (cdr arg) (+ n 1)))
       (else n))))
-(define (v-lambda.mid-prims lam) (caddr lam))
-(define (v-lambda.last-prim lam) (cadddr lam))
+(define (v-lambda.body lam) (caddr lam))
 ;; pair
 (define v-pair-tag 'v-pair)
 (define (v-pair-tagged kar kdr)
@@ -444,9 +450,8 @@
       (let*
         ( (lam (untag prim))
           (arg (prim-lambda.arg lam))
-          (mid-prims (prim-lambda.mid-prims lam))
-          (last-prim (prim-lambda.last-prim lam)))
-        (v-lambda-tagged env arg mid-prims last-prim)))
+          (body (prim-lambda.body lam)))
+        (v-lambda-tagged env arg body)))
     ((tagged? prim-if-tag prim)
       (let*
         ( (i (untag prim))
@@ -456,6 +461,15 @@
         (if (eval-prim co top-env env)
           (eval-prim th top-env env)
           (eval-prim el top-env env))))
+    ((tagged? prim-begin-tag prim)
+      (let*
+        ( (beg (untag prim))
+          (mid-prims (prim-begin.mid-prims beg))
+          (last-prim (prim-begin.last-prim beg)) )
+        (for-each
+          (lambda (prim) (eval-prim prim top-env env))
+          mid-prims)
+        (eval-prim last-prim top-env env)))
     ((tagged? prim-call-tag prim)
       (let*
         ( (prim (untag prim))
@@ -496,8 +510,7 @@
           ((tagged? v-lambda-tag callee-v)
             (let*
               ( (lam (untag callee-v))
-                (mid-prims (v-lambda.mid-prims lam))
-                (last-prim (v-lambda.last-prim lam))
+                (body (v-lambda.body lam))
                 (lam-env
                   (let bind
                     ( (lam-env (v-lambda.env lam))
@@ -516,10 +529,7 @@
                           (cdr lam-arg)
                           (cdr args-v)))
                       (else (raise-argn-error (v-lambda.argn-min lam) argn))))) )
-              (for-each
-                (lambda (prim) (eval-prim prim top-env lam-env))
-                mid-prims)
-              (eval-prim last-prim top-env lam-env)))
+              (eval-prim body top-env lam-env)))
           ; procedure ではない
           (else (raise-v-error "invalid application: " (msg-w expr))))))
     (else (error "eval-prim: fatal error:" prim))))

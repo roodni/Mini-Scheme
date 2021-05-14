@@ -32,6 +32,14 @@
 
 ; define
 (expect-error '(
+  (define (f) 1 . 2)
+))
+
+(expect-error '(
+  (define (f))
+))
+
+(expect-error '(
   (define (x y . 1) 1)
 ))
 
@@ -44,6 +52,10 @@
 ))
 
 ; lambda
+(expect-error '(
+  (lambda (a) 1 2 . 3)
+))
+
 (expect-error '(
   (lambda (a) (1 . 2))
 ))
