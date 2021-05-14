@@ -23,7 +23,7 @@
       (assert (= 3 (length pat)))
       (let
         ( (pat-loop (cadr pat))
-          (pat-end (caddr pat)))
+          (pat-end (caddr pat)) )
         (or
           (match? pat-end obj)
           (and
@@ -34,7 +34,7 @@
       (assert (= 3 (length pat)))
       (let
         ( (pat-l (cadr pat))
-          (pat-r (caddr pat)))
+          (pat-r (caddr pat)) )
         (or (match? pat-l obj)
             (match? pat-r obj))))
     ((pair? pat)
@@ -134,7 +134,7 @@
         ( (var-and-arg (cadr def))
           (var (car var-and-arg))
           (arg (cdr var-and-arg))
-          (body (parse-body (cddr def) def)))
+          (body (parse-body (cddr def) def)) )
         (list var (prim-lambda-tagged arg body))))
     (else (raise-parse-error def))))
 
@@ -148,18 +148,18 @@
 (define (parse-expr+ exprs error-expr)
   (let parse-expr+
     ( (mid-prims-rev (list))
-      (exprs exprs))
+      (exprs exprs) )
     (cond
       ((match? '(_) exprs)
         (let*
           ( (last-expr (car exprs))
             (last-prim (parse-expr last-expr))
-            (mid-prims (reverse mid-prims-rev)))
+            (mid-prims (reverse mid-prims-rev)) )
           (list mid-prims last-prim)))
       ((match? '(_ . _) exprs)
         (let*
           ( (mid-expr (car exprs))
-            (mid-prim (parse-expr mid-expr)))
+            (mid-prim (parse-expr mid-expr)) )
           (parse-expr+
             (cons mid-prim mid-prims-rev)
             (cdr exprs))))
@@ -186,7 +186,7 @@
           (let*
             ( (condition (cadr expr))
               (th (caddr expr))
-              (el-opt (cdddr expr)))
+              (el-opt (cdddr expr)) )
             (prim-if-tagged
               (parse-expr condition)
               (parse-expr th)
@@ -206,7 +206,7 @@
         ( (prims
             (map
               (lambda (e) (parse-expr e))
-              expr)))
+              expr)) )
         (prim-call-tagged (car prims) (cdr prims) expr)))
     (else (raise-parse-error expr))))
 
@@ -254,7 +254,7 @@
   (let v-print
     ( (is-cdr #f)
       (pair-memo '())
-      (v v))
+      (v v) )
     (cond
       ((number? v) (base-print v))
       ((boolean? v) (base-print v))
@@ -263,14 +263,14 @@
       ((tagged? v-builtin-tag v)
         (let*
           ( (v (untag v))
-            (name (v-builtin.name v)))
+            (name (v-builtin.name v)) )
           (display "[built-in ")
           (display name)
           (display "]")))
       ((tagged? v-lambda-tag v)
         (let*
           ( (lam (untag v))
-            (arg (v-lambda.arg lam)))
+            (arg (v-lambda.arg lam)) )
           (display "[lambda ")
           (write arg)
           (display " ...]")))
@@ -284,7 +284,7 @@
               ( (pair-memo (cons v pair-memo))
                 (v (untag v))
                 (a (v-pair.car v))
-                (d (v-pair.cdr v)))
+                (d (v-pair.cdr v)) )
               (if (not is-cdr) (display "("))
               (v-print #f pair-memo a)
               (cond
@@ -405,7 +405,7 @@
         (let loop ((args args))
           (define kar (car args))
           (define kdr (cdr args))
-          (cond
+          (condっt
             ((null? kdr) #t)
             ((= kar (car kdr)) (loop kdr))
             (else #f)))))
@@ -442,7 +442,7 @@
                 (env-lookup var top-env)
                 (raise-v-error "unknown location: " (msg-w var))))
           (prim (prim-set!.prim set))
-          (value (eval-prim prim top-env env)))
+          (value (eval-prim prim top-env env)) )
         (env-bind-set! bind value)
         v-command-ret))
     ((tagged? prim-const-tag prim) (untag prim))
@@ -450,14 +450,14 @@
       (let*
         ( (lam (untag prim))
           (arg (prim-lambda.arg lam))
-          (body (prim-lambda.body lam)))
+          (body (prim-lambda.body lam)) )
         (v-lambda-tagged env arg body)))
     ((tagged? prim-if-tag prim)
       (let*
         ( (i (untag prim))
           (co (prim-if.cond i))
           (th (prim-if.then i))
-          (el (prim-if.else i)))
+          (el (prim-if.else i)) )
         (if (eval-prim co top-env env)
           (eval-prim th top-env env)
           (eval-prim el top-env env))))
@@ -481,7 +481,7 @@
           (args-v
             (map
               (lambda (p) (eval-prim p top-env env))
-              args-prim)))
+              args-prim)) )
         (define (raise-argn-error required got)
           (raise-v-error
             "wrong number of arguments: required "
@@ -495,7 +495,7 @@
                 (name (v-builtin.name builtin))
                 (argn-min (v-builtin.argn-min builtin))
                 (variadic (v-builtin.variadic? builtin))
-                (proc (v-builtin.proc builtin)))
+                (proc (v-builtin.proc builtin)) )
               (if
                 (or
                   (= argn-min argn)
@@ -515,7 +515,7 @@
                   (let bind
                     ( (lam-env (v-lambda.env lam))
                       (lam-arg (v-lambda.arg lam))
-                      (args-v args-v))
+                      (args-v args-v) )
                     (cond
                       ((symbol? lam-arg)
                         (env-extend
@@ -543,12 +543,12 @@
         ( (def-parsed (parse-define toplevel))
           (var (car def-parsed))
           (prim (cadr def-parsed))
-          (value (eval-prim prim env-empty top-env)))
+          (value (eval-prim prim env-empty top-env)) )
         (list v-command-ret (env-define var value top-env))))
     (else
       (let*
         ( (prim (parse-expr toplevel))
-          (value (eval-prim prim top-env env-empty)))
+          (value (eval-prim prim top-env env-empty)) )
         (list value top-env)))))
 
 (define (eval-toplevel-list toplevel-list top-env)
@@ -591,7 +591,7 @@
             (let ((input (read)))
               (if (eof-object? input)
                 input
-                (tag 'ok input))))))
+                (tag 'ok input))))) )
       (cond
         ((eof-object? toplevel) 'bye)
         ((tagged? 'ok toplevel)
@@ -609,13 +609,13 @@
                       (write (untag condition))
                       'error))
                   (tag 'ok
-                    (eval-toplevel toplevel top-env)))))
+                    (eval-toplevel toplevel top-env)))) )
             (cond
               ((tagged? 'ok res)
                 (let*
                   ( (res (untag res))
                     (value (car res))
-                    (top-env (cadr res)))
+                    (top-env (cadr res)) )
                   (v-write value)
                   (loop top-env)))
               (else (loop top-env)))))
