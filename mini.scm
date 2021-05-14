@@ -202,6 +202,23 @@
     ((boolean? expr) (tag prim-const-tag expr))
     ((string? expr) (tag prim-const-tag expr))
     ((null? expr) (tag prim-const-tag expr))
+    ((match? '('quote . _) expr)
+      (cond
+        ((match? '(_) (cdr expr))
+          (tag prim-const-tag
+            (let quoted-value ((q-expr (cadr expr)))
+              (cond
+                ((symbol? q-expr) q-expr)
+                ((number? q-expr) q-expr)
+                ((boolean? q-expr) q-expr)
+                ((string? q-expr) q-expr)
+                ((null? q-expr) q-expr)
+                ((pair? q-expr)
+                  (v-pair-tagged
+                    (quoted-value (car q-expr))
+                    (quoted-value (cdr q-expr))))
+                (else (raise-parse-error expr))))))
+        (else (raise-parse-error expr))))
     ((match? '('lambda . _) expr)
       (cond
         ((match? '((* symbol (or () symbol)) . _) (cdr expr))
@@ -289,6 +306,7 @@
       (pair-memo '())
       (v v) )
     (cond
+      ((symbol? v) (base-print v))
       ((number? v) (base-print v))
       ((boolean? v) (base-print v))
       ((string? v) (base-print v))
@@ -341,6 +359,7 @@
 
 (define (v->obj v)
   (cond
+    ((symbol? v) v)
     ((number? v) v)
     ((boolean? v) v)
     ((string? v) v)

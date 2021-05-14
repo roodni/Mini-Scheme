@@ -10,6 +10,29 @@
         (flush))
       (else (error "fail" expected obj)))))
 
+; quote
+(mini-test '((1 2) (3 4)) '(
+  '((1 2) (3 4))
+))
+(mini-test 'a '(
+  (quote a)
+))
+(mini-test '(+ 1 2) '(
+  (quote (+ 1 2))
+))
+(mini-test "abc" '(
+  '"abc"
+))
+(mini-test 145932 '(
+  '145932
+))
+(mini-test #t '(
+  '#t
+))
+(mini-test '() '(
+  '()
+))
+
 ; 内部定義
 (mini-test 45 '(
   (define (f x)

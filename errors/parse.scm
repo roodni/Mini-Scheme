@@ -69,9 +69,19 @@
     (define y 2))
 ))
 (expect-error '(
-  ((lambda ()
+  (lambda ()
     (define x 1)
     (define y 2)
-    (+ x y z)
-    (define z 3)))
+    . 1)
+))
+
+; quote
+(expect-error '(
+  (quote)
+))
+(expect-error '(
+  (quote a b)
+))
+(expect-error '(
+  '#(1 2)
 ))
