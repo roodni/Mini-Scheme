@@ -139,10 +139,40 @@
     (else (raise-parse-error def))))
 
 (define (parse-body body error-expr)
-  (let* ((parsed-expr+ (parse-expr+ body error-expr)))
-    (prim-begin-tagged
-      (car parsed-expr+)
-      (cadr parsed-expr+))))
+  (let loop-define
+    ( (defs (list))
+      (body body) )
+    (cond
+      ((match? '(('define . _) . _) body)
+        (loop-define
+          (cons (parse-define (car body)) defs)
+          (cdr body)))
+      (else
+        (let*
+          ( (parsed-exprs (parse-expr+ body error-expr))
+            (mid-prims (car parsed-exprs))
+            (last-prim (cadr parsed-exprs)) )
+          (cond
+            ((null? defs)
+              (prim-begin-tagged mid-prims last-prim))
+            (else
+              (let*
+                ( (defs (reverse defs))
+                  (def-vars (map car defs))
+                  (def-set!-list
+                    (map
+                      (lambda (def)
+                        (prim-set!-tagged (car def) (cadr def)))
+                      defs))
+                  (def-voids (map (lambda (_) (tag prim-const-tag v-void)) defs)) )
+                (prim-call-tagged
+                  (prim-lambda-tagged
+                    def-vars
+                    (prim-begin-tagged
+                      (append def-set!-list mid-prims)
+                      last-prim))
+                  def-voids
+                  error-expr)))))))))
 
 ; returns (mid-prims last-prim)
 (define (parse-expr+ exprs error-expr)
@@ -247,6 +277,9 @@
 (define v-error-tag 'v-error)
 (define (raise-v-error . l)
   (raise (tag v-error-tag (msg l))))
+;; void (変数から取り出すとエラー)
+(define v-void-tag 'v-void)
+(define v-void (tag v-void-tag '()))
 ;; 命令の戻り値
 (define v-command-ret '())
 
@@ -393,6 +426,10 @@
       (lambda (args)
         (expect-number-list args)
         (fold + 0 args)))
+    (env-bind-builtin '* 0 #t
+      (lambda (args)
+        (expect-number-list args)
+        (fold * 1 args)))
     (env-bind-builtin '- 1 #t
       (lambda (args)
         (expect-number-list args)
@@ -405,7 +442,7 @@
         (let loop ((args args))
           (define kar (car args))
           (define kdr (cdr args))
-          (condっt
+          (cond
             ((null? kdr) #t)
             ((= kar (car kdr)) (loop kdr))
             (else #f)))))
@@ -429,10 +466,15 @@
 (define (eval-prim prim top-env env)
   (cond
     ((symbol? prim)
-      (env-bind.value
-        (or (env-lookup prim env)
-            (env-lookup prim top-env)
-            (raise-v-error "unknown location: " (msg-w prim)))))
+      (let*
+        ( (value
+            (env-bind.value
+              (or (env-lookup prim env)
+                  (env-lookup prim top-env)
+                  (raise-v-error "unknown location: " (msg-w prim))))) )
+        (if (tagged? v-void-tag value)
+          (raise-v-error "uninitialized variable: " (msg-w prim))
+          value)))
     ((tagged? prim-set!-tag prim)
       (let*
         ( (set (untag prim))

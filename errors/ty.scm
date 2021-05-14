@@ -5,9 +5,13 @@
 (expect-error '(
   (+ "hello")
 ))
-
 (expect-error '(
   (+ 1 "hello" 3)
+))
+
+; *
+(expect-error '(
+  (* "")
 ))
 
 ; =

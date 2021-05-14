@@ -10,7 +10,30 @@
         (flush))
       (else (error "fail" expected obj)))))
 
-; set-car! set-cdr!
+; 内部定義
+(mini-test 45 '(
+  (define (f x)
+    (define foo (lambda (y) (bar x y)))
+    (define bar (lambda (a b) (+ (* a b) a)))
+    (foo (+ x 3)))
+  (f 5)
+))
+(mini-test 102 '(
+  ( (lambda (a b)
+      (define a 100)
+      (+ a b))
+    1 2 )
+))
+(mini-test 123 '(
+  (define (f)
+    (define a 1)
+    (define b 2)
+    (define c 3)
+    (+ (* 100 a) (* 10 b) c))
+  (f)
+))
+
+; built-in set-car! set-cdr!
 (mini-test 2 '(
   (define l (cons 1 (cons 3 ())))
   (set-cdr! (cdr l) l)
@@ -22,7 +45,6 @@
   (define p (cons 1 2))
   (set-car! p 200)
 ))
-
 (mini-test v-command-ret '(
   (define p (cons 1 2))
   (set-cdr! p 200)
@@ -33,7 +55,6 @@
   (set-cdr! p 200)
   p
 ))
-
 (mini-test '(100 . 2) '(
   (define p (cons 1 2))
   (set-car! p 100)
@@ -51,7 +72,6 @@
   (define x 0)
   (set! x 1)
 ))
-
 (mini-test '(3 2 1) '(
   (define st ())
   (define (push v)
@@ -61,7 +81,6 @@
   (push 3)
   st
 ))
-
 (mini-test 200 '(
   (define x 12345)
   (define (f x)
@@ -69,7 +88,6 @@
     x)
   (f 100)
 ))
-
 (mini-test 2 '(
   (define x 1)
   (set! x 2)
@@ -89,7 +107,6 @@
 (mini-test 1 '(
   (if #t 1 2)
 ))
-
 (mini-test 2 '(
   (if #f 1 2)
 ))
@@ -97,7 +114,6 @@
 (mini-test "hello" '(
   (if 1 "hello")
 ))
-
 (mini-test v-command-ret '(
   (if #f "hello")
 ))
@@ -117,12 +133,10 @@
   (define y 100)
   ((lambda (y) (x)) 200)
 ))
-
 (mini-test 200 '(
   (define y 100)
   ((lambda (y) y) 200)
 ))
-
 (mini-test 100 '(
   (define (x) y)
   (define y 100)
@@ -136,7 +150,6 @@
     (if (= x 0) #f (even? (- x 1))))
   (even? 1001)
 ))
-
 (mini-test #t '(
   (define (even? x)
     (if (= x 0) #t (odd? (- x 1))))
@@ -150,12 +163,10 @@
     (cons x (cons y z)))
   (f 1 2 3 4 5)
 ))
-
 (mini-test '(1 2 3 4) '(
   (define (f . l) l)
   (f 1 2 3 4)
 ))
-
 (mini-test 3 '(
   (define (f a b) (+ a b))
   (f 1 2)
@@ -166,7 +177,6 @@
 (mini-test '(1 2 3 4 5) '(
   ((lambda l l) 1 2 3 4 5)
 ))
-
 (mini-test '(1 2 . (3 4 5)) '(
   ((lambda (x y . z)
       (cons x (cons y z)))
@@ -185,11 +195,6 @@
 (mini-test 300 '(
   ((lambda () 100 200 300))
 ))
-
-(mini-test 3 '(
-  ((lambda (a b) (+ a b)) 1 2)
-))
-
 (mini-test 3 '(
   ((lambda (a b) (+ a b)) 1 2)
 ))
@@ -198,19 +203,15 @@
 (mini-test #f '(
   (= 1 1 1 2)
 ))
-
 (mini-test #f '(
   (= 1 0 1 1)
 ))
-
 (mini-test #t '(
   (= 1 1 1 1)
 ))
-
 (mini-test #f '(
   (= 1 2)
 ))
-
 (mini-test #t '(
   (= 1 1)
 ))
@@ -219,11 +220,9 @@
 (mini-test -7 '(
   (- 1 3 5)
 ))
-
 (mini-test 2 '(
   (- 3 1)
 ))
-
 (mini-test -10 '(
   (- 10)
 ))
@@ -232,9 +231,16 @@
 (mini-test 6 '(
   (+ 1 2 3)
 ))
-
 (mini-test 0 '(
   (+)
+))
+
+; built-in *
+(mini-test 48 '(
+  (* 2 4 6)
+))
+(mini-test 1 '(
+  (*)
 ))
 
 ; built-in cons
@@ -246,13 +252,11 @@
 (mini-test v-command-ret '(
   (define x 0)
 ))
-
 (mini-test 456 '(
   (define hello 123)
   (define hello 456)
   hello
 ))
-
 (mini-test 123 '(
   (define hello 123)
   hello
@@ -262,15 +266,12 @@
 (mini-test #t '(
   #t
 ))
-
 (mini-test "hello" '(
   "hello"
 ))
-
 (mini-test 1 '(
   1
 ))
-
 (mini-test '() '(
   ()
 ))

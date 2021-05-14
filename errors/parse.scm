@@ -1,74 +1,77 @@
 (load "./mini.scm")
 
-; set!
-(expect-error '(
-  (set! x 1 2)
-))
 
+; dotted list
 (expect-error '(
-  (set! 0 1)
-))
-
-(expect-error '(
-  (set! x)
-))
-
-(expect-error '(
-  (set!)
-))
-
-; if
-(expect-error '(
-  (if 1 2 3 4)
-))
-
-(expect-error '(
-  (if 1)
-))
-
-(expect-error '(
-  (if)
-))
-
-; define
-(expect-error '(
-  (define (f) 1 . 2)
-))
-
-(expect-error '(
-  (define (f))
-))
-
-(expect-error '(
-  (define (x y . 1) 1)
-))
-
-(expect-error '(
-  (define () 1)
-))
-
-(expect-error '(
-  (define)
+  (1 . 2)
 ))
 
 ; lambda
 (expect-error '(
   (lambda (a) 1 2 . 3)
 ))
-
 (expect-error '(
   (lambda (a) (1 . 2))
 ))
-
 (expect-error '(
   (lambda (a))
 ))
-
 (expect-error '(
   (lambda 123 456)
 ))
 
-; dotted list
+; define
 (expect-error '(
-  (1 . 2)
+  (define (f) 1 . 2)
+))
+(expect-error '(
+  (define (f))
+))
+(expect-error '(
+  (define (x y . 1) 1)
+))
+(expect-error '(
+  (define () 1)
+))
+(expect-error '(
+  (define)
+))
+
+; if
+(expect-error '(
+  (if 1 2 3 4)
+))
+(expect-error '(
+  (if 1)
+))
+(expect-error '(
+  (if)
+))
+
+; set!
+(expect-error '(
+  (set! x 1 2)
+))
+(expect-error '(
+  (set! 0 1)
+))
+(expect-error '(
+  (set! x)
+))
+(expect-error '(
+  (set!)
+))
+
+; 内部定義
+(expect-error '(
+  (lambda ()
+    (define x 1)
+    (define y 2))
+))
+(expect-error '(
+  ((lambda ()
+    (define x 1)
+    (define y 2)
+    (+ x y z)
+    (define z 3)))
 ))
