@@ -111,6 +111,13 @@
 (define (prim-if.cond i) (car i))
 (define (prim-if.then i) (cadr i))
 (define (prim-if.else i) (caddr i))
+;; and
+(define prim-and-tag 'prim-and)
+(define (prim-and-tagged l r)
+  (tag prim-and-tag (list l r)))
+(define (prim-and.l a) (car a))
+(define (prim-and.r a) (cadr a))
+;; or
 ;; set!
 (define prim-set!-tag 'prim-set!)
 (define (prim-set!-tagged var prim)
@@ -300,6 +307,15 @@
                 (tag prim-const-tag v-command-ret)
                 (parse-expr (car el-opt))))))
         (else (raise-parse-error expr))))
+    ((match? '('and . _) expr)
+      (cond
+        ((null? (cdr expr)) (tag prim-const-tag #t))
+        (else
+          (let*
+            ( (prim+ (parse-expr+ (cdr expr) expr))
+              (mid-prims (car prim+))
+              (last-prim (cadr prim+)) )
+            (fold-right prim-and-tagged last-prim mid-prims)))))
     ((match? '('set! . _) expr)
       (cond
         ((match? '(symbol _) (cdr expr))
@@ -464,6 +480,19 @@
       (lambda (x)
         (if (not (number? x)) (raise-type-error "number" x)))
       vl))
+  (define (expect-real-list vl)
+    (for-each
+      (lambda (x)
+        (if (not (real? x)) (raise-type-error "real number" x)))
+      vl))
+  (define (transitive-relation-hold? rel lis)
+    (define kar (car lis))
+    (define kdr (cdr lis))
+    (cond
+      ((null? kdr) #t)
+      ((rel kar (car kdr))
+        (transitive-relation-hold? rel kdr))
+      (else #f)))
   (list
     (env-bind-builtin 'cons 2 #f
       (lambda (args)
@@ -517,13 +546,15 @@
     (env-bind-builtin '= 2 #t
       (lambda (args)
         (expect-number-list args)
-        (let loop ((args args))
-          (define kar (car args))
-          (define kdr (cdr args))
-          (cond
-            ((null? kdr) #t)
-            ((= kar (car kdr)) (loop kdr))
-            (else #f)))))
+        (transitive-relation-hold? = args)))
+    (env-bind-builtin '< 2 #t
+      (lambda (args)
+        (expect-real-list args)
+        (transitive-relation-hold? < args)))
+    (env-bind-builtin '> 2 #t
+      (lambda (args)
+        (expect-real-list args)
+        (transitive-relation-hold? > args)))
     (env-bind-builtin 'display 1 #f
       (lambda (args)
         (v-display (car args))
@@ -573,14 +604,15 @@
           (body (prim-lambda.body lam)) )
         (v-lambda-tagged env arg body)))
     ((tagged? prim-if-tag prim)
-      (let*
-        ( (i (untag prim))
-          (co (prim-if.cond i))
-          (th (prim-if.then i))
-          (el (prim-if.else i)) )
-        (if (eval-prim co top-env env)
-          (eval-prim th top-env env)
-          (eval-prim el top-env env))))
+      (let*  ((i (untag prim)))
+        (if (eval-prim (prim-if.cond i) top-env env)
+          (eval-prim (prim-if.then i) top-env env)
+          (eval-prim (prim-if.else i) top-env env))))
+    ((tagged? prim-and-tag prim)
+      (let* ((a (untag prim)))
+        (and
+          (eval-prim (prim-and.l a) top-env env)
+          (eval-prim (prim-and.r a) top-env env))))
     ((tagged? prim-begin-tag prim)
       (let*
         ( (beg (untag prim))

@@ -17,6 +17,23 @@
   (= 0)
 ))
 
+; <
+(expect-error '(
+  (<)
+))
+(expect-error '(
+  (< 0)
+))
+
+; >
+; <
+(expect-error '(
+  (>)
+))
+(expect-error '(
+  (> 0)
+))
+
 ; -
 (expect-error '(
   (-)

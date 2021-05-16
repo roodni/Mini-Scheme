@@ -117,3 +117,8 @@
 (expect-error '(
   (let name ())
 ))
+
+; and
+(expect-error '(
+  (and 1 . 2)
+))

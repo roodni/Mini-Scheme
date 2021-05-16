@@ -10,6 +10,25 @@
         (flush))
       (else (error "fail" expected obj)))))
 
+; and
+(mini-test #t '(
+  (and (= 2 2) (> 2 1))
+))
+(mini-test #f '(
+  (and (= 2 2) (< 2 1))
+))
+(mini-test '(f g) '(
+  (and 1 2 'c '(f g))
+))
+(mini-test #t '(
+  (and)
+))
+(mini-test 0 '(
+  (define v 0)
+  (and #f (set! v 1))
+  v
+))
+
 ; let*
 (mini-test 70 '(
   (let ((x 2) (y 3))
@@ -271,6 +290,41 @@
 (mini-test #t '(
   (= 1 1)
 ))
+
+; built-in <
+(mini-test #t '(
+  (< 1 2)
+))
+(mini-test #f '(
+  (< 1 1)
+))
+(mini-test #f '(
+  (< 1 0)
+))
+(mini-test #t '(
+  (< 1 2 3)
+))
+(mini-test #f '(
+  (< 1 2 1)
+))
+
+; built-in >
+(mini-test #f '(
+  (> 1 2)
+))
+(mini-test #f '(
+  (> 2 2)
+))
+(mini-test #t '(
+  (> 3 2)
+))
+(mini-test #t '(
+  (> 4 3 2 1)
+))
+(mini-test #f '(
+  (> 4 3 0 1)
+))
+
 
 ; built-in -
 (mini-test -7 '(

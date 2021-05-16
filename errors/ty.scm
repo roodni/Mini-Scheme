@@ -43,3 +43,16 @@
 (expect-error '(
   (set-cdr! 1 2)
 ))
+
+; <
+(expect-error '(
+  (< 1 "hoge")
+))
+(expect-error '(
+  (< 1 2+i 3)
+))
+
+; >
+(expect-error '(
+  (> 1 2+i 3)
+))
