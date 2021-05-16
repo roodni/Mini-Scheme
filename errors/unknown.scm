@@ -25,3 +25,8 @@
   (let ((a 1) (b a))
     (+ a b))
 ))
+
+(expect-error '(
+  (let* ((a b) (b 1))
+    (+ a b))
+))

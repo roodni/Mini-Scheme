@@ -269,6 +269,23 @@
               bindings-prims
               expr)))
         (else (raise-parse-error expr))))
+    ((match? '('let* . _) expr)
+      (cond
+        ((match? '(_ . _) (cdr expr))
+          (let*
+            ( (bindings (parse-bindings (cadr expr) expr))
+              (body (parse-body (cddr expr) expr)) )
+            (fold-right
+              (lambda (binding right)
+                (define var (car binding))
+                (define prim (cadr binding))
+                (prim-call-tagged
+                  (prim-lambda-tagged (list var) right)
+                  (list prim)
+                  expr))
+              body
+              bindings)))
+        (else (raise-parse-error expr))))
     ((match? '('if . _) expr)
       (cond
         ((match? '(_ _ . (or (_) ())) (cdr expr))

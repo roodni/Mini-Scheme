@@ -10,6 +10,15 @@
         (flush))
       (else (error "fail" expected obj)))))
 
+; let*
+(mini-test 70 '(
+  (let ((x 2) (y 3))
+    (let*
+      ( (x 7)
+        (z (+ x y)) )
+      (* z x)))
+))
+
 ; named let
 (mini-test 55 '(
   (let loop ((n 10))
