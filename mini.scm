@@ -241,17 +241,32 @@
         (else (raise-parse-error expr))))
     ((match? '('let . _) expr)
       (cond
-        ((match? '(symbol _ . _) (cdr expr))
-          (error "not implemented"))
-        ((match? '(_ . _) (cdr expr))
+        ((match? '(symbol _ . _) (cdr expr))  ; named let
           (let*
-            ( (bindings (parse-bindings (cadr expr) expr))
-              (body (parse-body (cddr expr) expr)) )
+            ( (name (cadr expr))
+              (bindings (parse-bindings (caddr expr) expr))
+              (body (parse-body (cdddr expr) expr))
+              (bindings-vars (map car bindings))
+              (bindings-prims (map cadr bindings)) )
             (prim-call-tagged
               (prim-lambda-tagged
-                (map car bindings)  ; vars
-                body)
-              (map cadr bindings) ; prims
+                (list name)
+                (prim-begin-tagged
+                  (list
+                    (prim-set!-tagged name
+                      (prim-lambda-tagged bindings-vars body)))
+                  (prim-call-tagged name bindings-prims expr)))
+              (list (tag prim-const-tag v-void))
+              expr)))
+        ((match? '(_ . _) (cdr expr)) ; let
+          (let*
+            ( (bindings (parse-bindings (cadr expr) expr))
+              (body (parse-body (cddr expr) expr))
+              (bindings-vars (map car bindings))
+              (bindings-prims (map cadr bindings)) )
+            (prim-call-tagged
+              (prim-lambda-tagged bindings-vars body)
+              bindings-prims
               expr)))
         (else (raise-parse-error expr))))
     ((match? '('if . _) expr)

@@ -96,3 +96,14 @@
 (expect-error '(
   (let ())
 ))
+
+; named let
+(expect-error '(
+  (let name)
+))
+(expect-error '(
+  (let name (x) x)
+))
+(expect-error '(
+  (let name ())
+))
