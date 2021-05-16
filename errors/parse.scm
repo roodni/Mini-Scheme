@@ -122,3 +122,7 @@
 (expect-error '(
   (and 1 . 2)
 ))
+; or
+(expect-error '(
+  (or . "fuga")
+))

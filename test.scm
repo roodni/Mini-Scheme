@@ -10,6 +10,20 @@
         (flush))
       (else (error "fail" expected obj)))))
 
+; or
+(mini-test #t '(
+  (or (= 2 2) (> 2 1))
+))
+(mini-test #t '(
+  (or (= 2 2) (< 2 1))
+))
+(mini-test #f '(
+  (or #f #f #f)
+))
+(mini-test '(b c) '(
+  (or '(b c) (car #t))
+))
+
 ; and
 (mini-test #t '(
   (and (= 2 2) (> 2 1))

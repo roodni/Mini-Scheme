@@ -118,6 +118,11 @@
 (define (prim-and.l a) (car a))
 (define (prim-and.r a) (cadr a))
 ;; or
+(define prim-or-tag 'prim-or)
+(define (prim-or-tagged l r)
+  (tag prim-or-tag (list l r)))
+(define (prim-or.l a) (car a))
+(define (prim-or.r a) (cadr a))
 ;; set!
 (define prim-set!-tag 'prim-set!)
 (define (prim-set!-tagged var prim)
@@ -316,6 +321,15 @@
               (mid-prims (car prim+))
               (last-prim (cadr prim+)) )
             (fold-right prim-and-tagged last-prim mid-prims)))))
+    ((match? '('or . _) expr)
+      (cond
+        ((null? (cdr expr)) (tag prim-const-tag #f))
+        (else
+          (let*
+            ( (prim+ (parse-expr+ (cdr expr) expr))
+              (mid-prims (car prim+))
+              (last-prim (cadr prim+)) )
+            (fold-right prim-or-tagged last-prim mid-prims)))))
     ((match? '('set! . _) expr)
       (cond
         ((match? '(symbol _) (cdr expr))
@@ -613,6 +627,11 @@
         (and
           (eval-prim (prim-and.l a) top-env env)
           (eval-prim (prim-and.r a) top-env env))))
+    ((tagged? prim-or-tag prim)
+      (let* ((o (untag prim)))
+        (or
+          (eval-prim (prim-or.l o) top-env env)
+          (eval-prim (prim-or.r o) top-env env))))
     ((tagged? prim-begin-tag prim)
       (let*
         ( (beg (untag prim))
