@@ -10,6 +10,20 @@
         (flush))
       (else (error "fail" expected obj)))))
 
+; let
+(mini-test 6 '(
+  (let ((x 2) (y 3))
+    (* x y))
+))
+
+(mini-test 35 '(
+  (let ((x 2) (y 3))
+    (let
+      ( (x 7)
+        (z (+ x y)) )
+      (* z x)))
+))
+
 ; quote
 (mini-test '((1 2) (3 4)) '(
   '((1 2) (3 4))

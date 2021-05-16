@@ -85,3 +85,14 @@
 (expect-error '(
   '#(1 2)
 ))
+
+; let
+(expect-error '(
+  (let)
+))
+(expect-error '(
+  (let (x) x)
+))
+(expect-error '(
+  (let ())
+))

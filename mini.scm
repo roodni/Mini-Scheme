@@ -195,6 +195,18 @@
             (cdr exprs))))
       (else (raise-parse-error error-expr)))))
 
+; returns ((var prim) ...)
+(define (parse-bindings bindings error-expr)
+  (cond
+    ((match? '(* (symbol _) ()) bindings)
+      (map
+        (lambda (b)
+          (list
+            (car b)
+            (parse-expr (cadr b))))
+        bindings))
+    (else (raise-parse-error error-expr))))
+
 (define (parse-expr expr)
   (cond
     ((symbol? expr) expr)
@@ -226,6 +238,21 @@
             ( (arg (cadr expr))
               (body (parse-body (cddr expr) expr)) )
             (prim-lambda-tagged arg body)))
+        (else (raise-parse-error expr))))
+    ((match? '('let . _) expr)
+      (cond
+        ((match? '(symbol _ . _) (cdr expr))
+          (error "not implemented"))
+        ((match? '(_ . _) (cdr expr))
+          (let*
+            ( (bindings (parse-bindings (cadr expr) expr))
+              (body (parse-body (cddr expr) expr)) )
+            (prim-call-tagged
+              (prim-lambda-tagged
+                (map car bindings)  ; vars
+                body)
+              (map cadr bindings) ; prims
+              expr)))
         (else (raise-parse-error expr))))
     ((match? '('if . _) expr)
       (cond
