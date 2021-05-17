@@ -56,3 +56,8 @@
 (expect-error '(
   (> 1 2+i 3)
 ))
+
+; >=
+(expect-error '(
+  (>= 1 2+i 3)
+))

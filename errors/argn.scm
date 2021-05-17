@@ -95,3 +95,11 @@
   (define p (cons 1 2))
   (set-cdr! p p p)
 ))
+
+; null?
+(expect-error '(
+  (null?)
+))
+(expect-error '(
+  (null? '() '())
+))

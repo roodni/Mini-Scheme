@@ -126,3 +126,17 @@
 (expect-error '(
   (or . "fuga")
 ))
+
+; cond
+(expect-error '(
+  (cond (else))
+))
+(expect-error '(
+  (cond (else 1) (#t 1))
+))
+(expect-error '(
+  (cond (#t))
+))
+(expect-error '(
+  (cond ())
+))

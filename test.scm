@@ -10,6 +10,198 @@
         (flush))
       (else (error "fail" expected obj)))))
 
+;; built-in procedure
+
+; null?
+(mini-test #t '(
+  (null? '())
+))
+(mini-test #f '(
+  (null? (cons 1 2))
+))
+
+; set-car! set-cdr!
+(mini-test 2 '(
+  (define l (cons 1 (cons 3 ())))
+  (set-cdr! (cdr l) l)
+  (-  (car (cdr (cdr (cdr (cdr (cdr l))))))
+      (car (cdr (cdr l))))
+))
+
+(mini-test v-command-ret '(
+  (define p (cons 1 2))
+  (set-car! p 200)
+))
+(mini-test v-command-ret '(
+  (define p (cons 1 2))
+  (set-cdr! p 200)
+))
+
+(mini-test '(1 . 200) '(
+  (define p (cons 1 2))
+  (set-cdr! p 200)
+  p
+))
+(mini-test '(100 . 2) '(
+  (define p (cons 1 2))
+  (set-car! p 100)
+  p
+))
+
+; car cdr
+(mini-test 2 '(
+  (define a (cons 1 (cons 2 (cons 3 ()))))
+  (car (cdr a))
+))
+
+; =
+(mini-test #f '(
+  (= 1 1 1 2)
+))
+(mini-test #f '(
+  (= 1 0 1 1)
+))
+(mini-test #t '(
+  (= 1 1 1 1)
+))
+(mini-test #f '(
+  (= 1 2)
+))
+(mini-test #t '(
+  (= 1 1)
+))
+
+; <
+(mini-test #t '(
+  (< 1 2)
+))
+(mini-test #f '(
+  (< 1 1)
+))
+(mini-test #f '(
+  (< 1 0)
+))
+(mini-test #t '(
+  (< 1 2 3)
+))
+(mini-test #f '(
+  (< 1 2 1)
+))
+
+; >
+(mini-test #f '(
+  (> 1 2)
+))
+(mini-test #f '(
+  (> 2 2)
+))
+(mini-test #t '(
+  (> 3 2)
+))
+(mini-test #t '(
+  (> 4 3 2 1)
+))
+(mini-test #f '(
+  (> 4 3 0 1)
+))
+
+; >=
+(mini-test #f '(
+  (>= 1 2)
+))
+(mini-test #t '(
+  (>= 2 2)
+))
+(mini-test #t '(
+  (>= 3 2)
+))
+(mini-test #t '(
+  (>= 2 1 1 1)
+))
+(mini-test #f '(
+  (>= 4 3 0 1)
+))
+
+
+; -
+(mini-test -7 '(
+  (- 1 3 5)
+))
+(mini-test 2 '(
+  (- 3 1)
+))
+(mini-test -10 '(
+  (- 10)
+))
+
+; +
+(mini-test 6 '(
+  (+ 1 2 3)
+))
+(mini-test 0 '(
+  (+)
+))
+
+; *
+(mini-test 48 '(
+  (* 2 4 6)
+))
+(mini-test 1 '(
+  (*)
+))
+
+; cons
+(mini-test (list 1 2 3) '(
+  (cons 1 (cons 2 (cons 3 ())))
+))
+
+; list
+(mini-test '() '(
+  (list)
+))
+(mini-test '(1 2 3 4) '(
+  (list 1 2 3 4)
+))
+
+
+;; expression
+; cond
+(mini-test 'greater '(
+  (cond
+    ((> 3 2) 'greater)
+    ((< 3 2) 'less))
+))
+(mini-test 'equal '(
+  (cond
+    ((> 3 3) 'greater)
+    ((< 3 3) 'less)
+    (else 'equal))
+))
+(mini-test 1 '(
+  (cond
+    (#t 1)
+    (#t 2)
+    (#t 3))
+))
+(mini-test '((6 1 3) (-5 -2)) '(
+  (let loop
+    ( (numbers '(3 -2 1 6 -5))
+      (nonneg '())
+      (neg '()) )
+    (cond
+      ((null? numbers) (list nonneg neg))
+      ((>= (car numbers) 0)
+        (loop
+          (cdr numbers)
+          (cons (car numbers) nonneg)
+          neg))
+      ((< (car numbers) 0)
+        (loop
+          (cdr numbers)
+          nonneg
+          (cons (car numbers) neg)))))
+))
+
 ; or
 (mini-test #t '(
   (or (= 2 2) (> 2 1))
@@ -120,40 +312,6 @@
     (define c 3)
     (+ (* 100 a) (* 10 b) c))
   (f)
-))
-
-; built-in set-car! set-cdr!
-(mini-test 2 '(
-  (define l (cons 1 (cons 3 ())))
-  (set-cdr! (cdr l) l)
-  (-  (car (cdr (cdr (cdr (cdr (cdr l))))))
-      (car (cdr (cdr l))))
-))
-
-(mini-test v-command-ret '(
-  (define p (cons 1 2))
-  (set-car! p 200)
-))
-(mini-test v-command-ret '(
-  (define p (cons 1 2))
-  (set-cdr! p 200)
-))
-
-(mini-test '(1 . 200) '(
-  (define p (cons 1 2))
-  (set-cdr! p 200)
-  p
-))
-(mini-test '(100 . 2) '(
-  (define p (cons 1 2))
-  (set-car! p 100)
-  p
-))
-
-; car cdr
-(mini-test 2 '(
-  (define a (cons 1 (cons 2 (cons 3 ()))))
-  (car (cdr a))
 ))
 
 ; set!
@@ -286,90 +444,6 @@
 ))
 (mini-test 3 '(
   ((lambda (a b) (+ a b)) 1 2)
-))
-
-; built-in =
-(mini-test #f '(
-  (= 1 1 1 2)
-))
-(mini-test #f '(
-  (= 1 0 1 1)
-))
-(mini-test #t '(
-  (= 1 1 1 1)
-))
-(mini-test #f '(
-  (= 1 2)
-))
-(mini-test #t '(
-  (= 1 1)
-))
-
-; built-in <
-(mini-test #t '(
-  (< 1 2)
-))
-(mini-test #f '(
-  (< 1 1)
-))
-(mini-test #f '(
-  (< 1 0)
-))
-(mini-test #t '(
-  (< 1 2 3)
-))
-(mini-test #f '(
-  (< 1 2 1)
-))
-
-; built-in >
-(mini-test #f '(
-  (> 1 2)
-))
-(mini-test #f '(
-  (> 2 2)
-))
-(mini-test #t '(
-  (> 3 2)
-))
-(mini-test #t '(
-  (> 4 3 2 1)
-))
-(mini-test #f '(
-  (> 4 3 0 1)
-))
-
-
-; built-in -
-(mini-test -7 '(
-  (- 1 3 5)
-))
-(mini-test 2 '(
-  (- 3 1)
-))
-(mini-test -10 '(
-  (- 10)
-))
-
-; built-in +
-(mini-test 6 '(
-  (+ 1 2 3)
-))
-(mini-test 0 '(
-  (+)
-))
-
-; built-in *
-(mini-test 48 '(
-  (* 2 4 6)
-))
-(mini-test 1 '(
-  (*)
-))
-
-; built-in cons
-(mini-test (list 1 2 3) '(
-  (cons 1 (cons 2 (cons 3 ())))
 ))
 
 ; define (単純)

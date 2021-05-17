@@ -207,7 +207,7 @@
             (cdr exprs))))
       (else (raise-parse-error error-expr)))))
 
-; returns ((var prim) ...)
+; returns (var prim)*
 (define (parse-bindings bindings error-expr)
   (cond
     ((match? '(* (symbol _) ()) bindings)
@@ -218,6 +218,39 @@
             (parse-expr (cadr b))))
         bindings))
     (else (raise-parse-error error-expr))))
+
+; returns ((test-prim then-prim)* else-prim)
+(define (parse-cond-clauses clauses error-expr)
+  (let loop
+    ( (parsed-clauses-rev '())
+      (clauses clauses) )
+    (cond
+      ((null? clauses)
+        (list
+          (reverse parsed-clauses-rev)
+          (tag prim-const-tag v-command-ret)))
+      ((match? '(('else . _)) clauses)
+        (let*
+          ( (clause (car clauses))
+            (prim+ (parse-expr+ (cdr clause) error-expr)) )
+          (list
+            (reverse parsed-clauses-rev)
+            (prim-begin-tagged (car prim+) (cadr prim+)))))
+      ((match? '(('else . _) _ . _) clauses)
+        (raise-parse-error error-expr))
+      ((match? '((_ . _) . _) clauses)
+        (let*
+          ( (clause (car clauses))
+            (test-prim (parse-expr (car clause)))
+            (prim+ (parse-expr+ (cdr clause) error-expr))
+            (parsed-clause
+              (list
+                test-prim
+                (prim-begin-tagged (car prim+) (cadr prim+)))) )
+          (loop
+            (cons parsed-clause parsed-clauses-rev)
+            (cdr clauses))))
+      (else (raise-parse-error error-expr)))))
 
 (define (parse-expr expr)
   (cond
@@ -330,6 +363,18 @@
               (mid-prims (car prim+))
               (last-prim (cadr prim+)) )
             (fold-right prim-or-tagged last-prim mid-prims)))))
+    ((match? '('cond . _) expr)
+      (let*
+        ( (clauses (parse-cond-clauses (cdr expr) expr))
+          (test-clauses (car clauses))
+          (else-prim (cadr clauses)) )
+        (fold-right
+          (lambda (clause else-prim)
+            (define test-prim (car clause))
+            (define then-prim (cadr clause))
+            (prim-if-tagged test-prim then-prim else-prim))
+          else-prim
+          test-clauses)))
     ((match? '('set! . _) expr)
       (cond
         ((match? '(symbol _) (cdr expr))
@@ -513,6 +558,8 @@
         (define a (car args))
         (define d (cadr args))
         (v-pair-tagged a d)))
+    (env-bind-builtin 'list 0 #t
+      (lambda (args) (fold-right v-pair-tagged '() args)))
     (env-bind-builtin 'car 1 #f
       (lambda (args)
         (define p (car args))
@@ -543,6 +590,8 @@
             (v-pair.set-cdr! (untag p) v)
             v-command-ret)
           (else (raise-type-error "pair" p)))))
+    (env-bind-builtin 'null? 1 #f
+      (lambda (args) (null? (car args))))
     (env-bind-builtin '+ 0 #t
       (lambda (args)
         (expect-number-list args)
@@ -569,6 +618,10 @@
       (lambda (args)
         (expect-real-list args)
         (transitive-relation-hold? > args)))
+    (env-bind-builtin '>= 2 #t
+      (lambda (args)
+        (expect-real-list args)
+        (transitive-relation-hold? >= args)))
     (env-bind-builtin 'display 1 #f
       (lambda (args)
         (v-display (car args))
@@ -656,14 +709,13 @@
         (define (raise-argn-error required got)
           (raise-v-error
             "wrong number of arguments: required "
-            required ", but got " argn "\n"
+            required ", but got " argn "\n  "
             (msg-w expr)))
         (cond
           ; built-in procedure
           ((tagged? v-builtin-tag callee-v)
             (let*
               ( (builtin (untag callee-v))
-                (name (v-builtin.name builtin))
                 (argn-min (v-builtin.argn-min builtin))
                 (variadic (v-builtin.variadic? builtin))
                 (proc (v-builtin.proc builtin)) )
@@ -674,7 +726,7 @@
                 (guard
                   (err
                     ((tagged? v-error-tag err)
-                      (raise-v-error name ": " (untag err) "\n" (msg-w expr))))
+                      (raise-v-error (untag err) "\n  " (msg-w expr))))
                   (proc args-v))
                 (raise-argn-error argn-min argn))))
           ; lambda
