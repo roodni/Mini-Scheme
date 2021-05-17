@@ -2,73 +2,73 @@
 
 
 ; dotted list
-(expect-error '(
+(expect-parse-error '(
   (1 . 2)
 ))
 
 ; lambda
-(expect-error '(
+(expect-parse-error '(
   (lambda (a) 1 2 . 3)
 ))
-(expect-error '(
+(expect-parse-error '(
   (lambda (a) (1 . 2))
 ))
-(expect-error '(
+(expect-parse-error '(
   (lambda (a))
 ))
-(expect-error '(
+(expect-parse-error '(
   (lambda 123 456)
 ))
 
 ; define
-(expect-error '(
+(expect-parse-error '(
   (define (f) 1 . 2)
 ))
-(expect-error '(
+(expect-parse-error '(
   (define (f))
 ))
-(expect-error '(
+(expect-parse-error '(
   (define (x y . 1) 1)
 ))
-(expect-error '(
+(expect-parse-error '(
   (define () 1)
 ))
-(expect-error '(
+(expect-parse-error '(
   (define)
 ))
 
 ; if
-(expect-error '(
+(expect-parse-error '(
   (if 1 2 3 4)
 ))
-(expect-error '(
+(expect-parse-error '(
   (if 1)
 ))
-(expect-error '(
+(expect-parse-error '(
   (if)
 ))
 
 ; set!
-(expect-error '(
+(expect-parse-error '(
   (set! x 1 2)
 ))
-(expect-error '(
+(expect-parse-error '(
   (set! 0 1)
 ))
-(expect-error '(
+(expect-parse-error '(
   (set! x)
 ))
-(expect-error '(
+(expect-parse-error '(
   (set!)
 ))
 
 ; 内部定義
-(expect-error '(
+(expect-parse-error '(
   (lambda ()
     (define x 1)
     (define y 2))
 ))
-(expect-error '(
+(expect-parse-error '(
   (lambda ()
     (define x 1)
     (define y 2)
@@ -76,67 +76,67 @@
 ))
 
 ; quote
-(expect-error '(
+(expect-parse-error '(
   (quote)
 ))
-(expect-error '(
+(expect-parse-error '(
   (quote a b)
 ))
-(expect-error '(
+(expect-parse-error '(
   '#(1 2)
 ))
 
 ; let
-(expect-error '(
+(expect-parse-error '(
   (let)
 ))
-(expect-error '(
+(expect-parse-error '(
   (let (x) x)
 ))
-(expect-error '(
+(expect-parse-error '(
   (let ())
 ))
 ; let*
-(expect-error '(
+(expect-parse-error '(
   (let*)
 ))
-(expect-error '(
+(expect-parse-error '(
   (let* (x) x)
 ))
-(expect-error '(
+(expect-parse-error '(
   (let* ())
 ))
 
 ; named let
-(expect-error '(
+(expect-parse-error '(
   (let name)
 ))
-(expect-error '(
+(expect-parse-error '(
   (let name (x) x)
 ))
-(expect-error '(
+(expect-parse-error '(
   (let name ())
 ))
 
 ; and
-(expect-error '(
+(expect-parse-error '(
   (and 1 . 2)
 ))
 ; or
-(expect-error '(
+(expect-parse-error '(
   (or . "fuga")
 ))
 
 ; cond
-(expect-error '(
+(expect-parse-error '(
   (cond (else))
 ))
-(expect-error '(
+(expect-parse-error '(
   (cond (else 1) (#t 1))
 ))
-(expect-error '(
+(expect-parse-error '(
   (cond (#t))
 ))
-(expect-error '(
+(expect-parse-error '(
   (cond ())
 ))

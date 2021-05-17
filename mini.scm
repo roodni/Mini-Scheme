@@ -483,13 +483,30 @@
               (if (not is-cdr) (display ")"))))))
       ((tagged? v-error-tag v)
         (display "[error]"))
+      ((mini-value? v)
+        (display "[non-writable: ")
+        (write v)
+        (display "]"))
       (else
-        (display "[?: ")
+        (display "[FATAL: ")
         (write v)
         (display "]")))))
 
 (define (v-display v) (v-print display v))
 (define (v-write v) (v-print write v))
+
+(define (mini-value? obj)
+  (or
+    (symbol? obj)
+    (number? obj)
+    (boolean? obj)
+    (string? obj)
+    (null? obj)
+    (tagged? v-builtin-tag obj)
+    (tagged? v-lambda-tag obj)
+    (tagged? v-pair-tag obj)
+    (tagged? v-error-tag obj)
+    (tagged? v-void-tag obj)))
 
 (define (v->obj v)
   (cond
@@ -511,6 +528,7 @@
 (define (env-bind.value bind) (cdr bind))
 (define (env-bind-set! bind value) (set-cdr! bind value))
 
+(define env-empty '())
 (define (env-lookup var env)
   (assoc var env))
 (define (env-extend var value env)
@@ -523,7 +541,9 @@
         env)
       (else (env-extend var value env)))))
 
-(define env-empty '())
+(define builtin-error-tag 'builtin-error)
+(define (raise-builtin-error . l)
+  (raise (tag builtin-error-tag (msg l))))
 
 (define (env-init)
   (define (env-bind-builtin var argn-min variadic proc)
@@ -533,7 +553,7 @@
         (symbol->string var)
         argn-min variadic proc)))
   (define (raise-type-error ty v)
-    (raise-v-error ty " required, but got " (msg-v v)))
+    (raise-builtin-error ty " required, but got " (msg-v v)))
   (define (expect-number-list vl)
     (for-each
       (lambda (x)
@@ -634,6 +654,8 @@
       (lambda (args)
         (flush)
         v-command-ret))
+    (env-bind-builtin 'raise 1 #f
+      (lambda (args) (raise (car args))))
   ))
 
 
@@ -725,7 +747,7 @@
                   (and variadic (< argn-min argn)))
                 (guard
                   (err
-                    ((tagged? v-error-tag err)
+                    ((tagged? builtin-error-tag err)
                       (raise-v-error (untag err) "\n  " (msg-w expr))))
                   (proc args-v))
                 (raise-argn-error argn-min argn))))
@@ -787,8 +809,18 @@
   (guard
     (err
       ((tagged? v-error-tag err)
+        (display "error: ")
         (msg-print (untag err))
-        (newline))
+        (newline)))
+    (eval-toplevel-list toplevel-list (env-init))
+    (display "no error occured:\n")
+    (write toplevel-list)
+    (newline)
+    (exit 1)))
+
+(define (expect-parse-error toplevel-list)
+  (guard
+    (err
       ((tagged? parse-error-tag err)
         (display "syntax error: ")
         (write (untag err))
@@ -803,7 +835,8 @@
 (define (mini-repl)
   (display "mini-scheme intepreter\n")
   (let loop ((top-env (env-init)))
-    (display "\n> ")
+    (newline)
+    (display "mini> ")
     (flush)
     (let
       ( (toplevel
@@ -823,14 +856,17 @@
               (res
                 (guard
                   (condition
+                    ((tagged? parse-error-tag condition)
+                      (display "syntax error: ")
+                      (write (untag condition))
+                      'error)
                     ((tagged? v-error-tag condition)
                       (display "error: ")
                       (msg-print (untag condition))
                       'error)
-                    ((tagged? parse-error-tag condition)
-                      (display "syntax error: ")
-                      (write (untag condition))
-                      'error))
+                    ((mini-value? condition)
+                      (display "uncaught exception: ")
+                      (v-write condition)))
                   (tag 'ok
                     (eval-toplevel toplevel top-env)))) )
             (cond
