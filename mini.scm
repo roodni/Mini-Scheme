@@ -130,6 +130,17 @@
   (tag prim-set!-tag (list var prim)))
 (define (prim-set!.var set) (car set))
 (define (prim-set!.prim set) (cadr set))
+;; guard
+(define prim-guard-tag 'prim-guard)
+(define (prim-guard-tagged var cond-clauses body)
+  (assert (symbol? var))
+  (assert (= (length cond-clauses) 2))
+  (assert (list? (car cond-clauses)))
+  (tag prim-guard-tag (list var cond-clauses body)))
+(define (prim-guard.var g) (car g))
+(define (prim-guard.test-clauses g) (car (cadr g)))
+(define (prim-guard.else-prim-opt g) (cadr (cadr g)))
+(define (prim-guard.body g) (caddr g))
 
 ;; expr -> prim
 (define parse-error-tag 'parse-error)
@@ -219,7 +230,7 @@
         bindings))
     (else (raise-parse-error error-expr))))
 
-; returns ((test-prim then-prim)* else-prim)
+; returns ((test-prim then-prim)* else-prim-opt)
 (define (parse-cond-clauses clauses error-expr)
   (let loop
     ( (parsed-clauses-rev '())
@@ -228,7 +239,7 @@
       ((null? clauses)
         (list
           (reverse parsed-clauses-rev)
-          (tag prim-const-tag v-command-ret)))
+          #f))
       ((match? '(('else . _)) clauses)
         (let*
           ( (clause (car clauses))
@@ -367,7 +378,9 @@
       (let*
         ( (clauses (parse-cond-clauses (cdr expr) expr))
           (test-clauses (car clauses))
-          (else-prim (cadr clauses)) )
+          (else-prim
+            (or (cadr clauses)
+                (tag prim-const-tag v-command-ret))) )
         (fold-right
           (lambda (clause else-prim)
             (define test-prim (car clause))
@@ -381,6 +394,16 @@
           (prim-set!-tagged
             (cadr expr)
             (parse-expr (caddr expr))))
+        (else (raise-parse-error expr))))
+    ((match? '('guard . _) expr)
+      (cond
+        ((match? '((symbol . _) . _) (cdr expr))
+          (let*
+            ( (var (car (cadr expr)))
+              (clauses (cdr (cadr expr)))
+              (clauses (parse-cond-clauses clauses expr))
+              (body (parse-body (cddr expr) expr)) )
+            (prim-guard-tagged var clauses body)))
         (else (raise-parse-error expr))))
     ((list? expr)
       (let
@@ -482,7 +505,9 @@
                   (v-print #f pair-memo d)))
               (if (not is-cdr) (display ")"))))))
       ((tagged? v-error-tag v)
-        (display "[error]"))
+        (display "[error: ")
+        (msg-print (untag v))
+        (display "]"))
       ((mini-value? v)
         (display "[non-writable: ")
         (write v)
@@ -716,6 +741,32 @@
           (lambda (prim) (eval-prim prim top-env env))
           mid-prims)
         (eval-prim last-prim top-env env)))
+    ((tagged? prim-guard-tag prim)
+      (let*
+        ( (g (untag prim))
+          (var (prim-guard.var g))
+          (test-clauses (prim-guard.test-clauses g))
+          (else-prim-opt (prim-guard.else-prim-opt g))
+          (body (prim-guard.body g)) )
+        (guard
+          (condition
+            ((mini-value? condition)
+              (let ((env (env-extend var condition env)))
+                (let loop ((test-clauses test-clauses))
+                  (cond
+                    ((null? test-clauses)
+                      (if else-prim-opt
+                        (eval-prim else-prim-opt top-env env)
+                        (raise condition)))
+                    (else
+                      (let*
+                        ( (clause (car test-clauses))
+                          (test-prim (car clause))
+                          (then-prim (cadr clause)) )
+                        (if (eval-prim test-prim top-env env)
+                          (eval-prim then-prim top-env env)
+                          (loop (cdr test-clauses))))))))))
+          (eval-prim body top-env env))))
     ((tagged? prim-call-tag prim)
       (let*
         ( (prim (untag prim))

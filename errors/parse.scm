@@ -140,3 +140,14 @@
 (expect-parse-error '(
   (cond ())
 ))
+
+; guard
+(expect-parse-error '(
+  (guard)
+))
+(expect-parse-error '(
+  (guard ((else 1)) 1)
+))
+(expect-parse-error '(
+  (guard (c (else 1)))
+))

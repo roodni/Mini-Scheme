@@ -1,6 +1,13 @@
 (load "./mini.scm")
 
 (eval-toplevel-list '(
+  (guard
+    (e (else (write e)))
+    (< "hello" "world"))
+) (env-init))
+(newline)
+
+(eval-toplevel-list '(
   (define l (cons 1 (cons 2 ())))
   (set-car! (cdr l) l)
   (write l)

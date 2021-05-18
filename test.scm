@@ -11,7 +11,6 @@
       (else (error "fail" expected obj)))))
 
 ;; built-in procedure
-
 ; null?
 (mini-test #t '(
   (null? '())
@@ -165,6 +164,56 @@
 
 
 ;; expression
+; guard
+(mini-test 'ok '(
+  (guard
+    (c (else 'error))
+  'ok)
+))
+(mini-test 'greater '(
+  (guard
+    (c
+      ((> c 2) 'greater)
+      ((< c 2) 'less)
+      (else 'equal))
+    (raise 3))
+))
+(mini-test 'less '(
+  (guard
+    (c
+      ((> c 2) 'greater)
+      ((< c 2) 'less)
+      (else 'equal))
+    (raise 1))
+))
+(mini-test 'equal '(
+  (guard
+    (c
+      ((> c 2) 'greater)
+      ((< c 2) 'less)
+      (else 'equal))
+    (raise 2))
+))
+(mini-test 'equal2 '(
+  (guard
+    (c ((= c 2) 'equal2))
+    (guard
+      (c
+        ((> c 2) 'greater)
+        ((< c 2) 'less))
+      (raise 2)))
+))
+(mini-test 'e '(
+  (guard
+    (c (else 'e))
+  (< 1 0+1i))
+))
+(mini-test 2 '(
+  (guard
+    (_ (#f 1) (#t 2) (#t 3) (else 4))
+  (raise 'e))
+))
+
 ; cond
 (mini-test 'greater '(
   (cond
@@ -182,6 +231,9 @@
     (#t 1)
     (#t 2)
     (#t 3))
+))
+(mini-test v-command-ret '(
+  (cond (#f 1) (#f 2))
 ))
 (mini-test '((6 1 3) (-5 -2)) '(
   (let loop
