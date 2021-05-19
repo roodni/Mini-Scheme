@@ -597,93 +597,142 @@
       ((rel kar (car kdr))
         (transitive-relation-hold? rel kdr))
       (else #f)))
-  (list
-    (env-bind-builtin 'cons 2 #f
-      (lambda (args)
-        (define a (car args))
-        (define d (cadr args))
-        (v-pair-tagged a d)))
-    (env-bind-builtin 'list 0 #t
-      (lambda (args) (fold-right v-pair-tagged '() args)))
-    (env-bind-builtin 'car 1 #f
-      (lambda (args)
-        (define p (car args))
+  (define env
+    (list
+      (env-bind-builtin 'cons 2 #f
+        (lambda (args)
+          (define a (car args))
+          (define d (cadr args))
+          (v-pair-tagged a d)))
+      (env-bind-builtin 'list 0 #t
+        (lambda (args) (fold-right v-pair-tagged '() args)))
+      (env-bind-builtin 'car 1 #f
+        (lambda (args)
+          (define p (car args))
+          (cond
+            ((tagged? v-pair-tag p) (v-pair.car (untag p)))
+            (else (raise-type-error "pair" p)))))
+      (env-bind-builtin 'cdr 1 #f
+        (lambda (args)
+          (define p (car args))
+          (cond
+            ((tagged? v-pair-tag p) (v-pair.cdr (untag p)))
+            (else (raise-type-error "pair" p)))))
+      (env-bind-builtin 'set-car! 2 #f
+        (lambda (args)
+          (define p (car args))
+          (define v (cadr args))
+          (cond
+            ((tagged? v-pair-tag p)
+              (v-pair.set-car! (untag p) v)
+              v-command-ret)
+            (else (raise-type-error "pair" p)))))
+      (env-bind-builtin 'set-cdr! 2 #f
+        (lambda (args)
+          (define p (car args))
+          (define v (cadr args))
+          (cond
+            ((tagged? v-pair-tag p)
+              (v-pair.set-cdr! (untag p) v)
+              v-command-ret)
+            (else (raise-type-error "pair" p)))))
+      (env-bind-builtin 'null? 1 #f
+        (lambda (args) (null? (car args))))
+      (env-bind-builtin 'pair? 1 #f
+        (lambda (args) (tagged? v-pair-tag (car args))))
+      (env-bind-builtin 'string? 1 #f
+        (lambda (args) (string? (car args))))
+      (env-bind-builtin 'number? 1 #f
+        (lambda (args) (number? (car args))))
+      (env-bind-builtin 'boolean? 1 #f
+        (lambda (args) (boolean? (car args))))
+      (env-bind-builtin 'procedure? 1 #f
+        (lambda (args)
+          (define obj (car args))
+          (or (tagged? v-lambda-tag obj)
+              (tagged? v-builtin-tag obj))))
+      (env-bind-builtin 'eq? 2 #f
+        (lambda (args) (eq? (car args) (cadr args))))
+      (env-bind-builtin '+ 0 #t
+        (lambda (args)
+          (expect-number-list args)
+          (fold + 0 args)))
+      (env-bind-builtin '* 0 #t
+        (lambda (args)
+          (expect-number-list args)
+          (fold * 1 args)))
+      (env-bind-builtin '- 1 #t
+        (lambda (args)
+          (expect-number-list args)
+          (cond
+            ((null? (cdr args)) (- (car args)))
+            (else (fold-left - (car args) (cdr args))))))
+      (env-bind-builtin '= 2 #t
+        (lambda (args)
+          (expect-number-list args)
+          (transitive-relation-hold? = args)))
+      (env-bind-builtin '< 2 #t
+        (lambda (args)
+          (expect-real-list args)
+          (transitive-relation-hold? < args)))
+      (env-bind-builtin '> 2 #t
+        (lambda (args)
+          (expect-real-list args)
+          (transitive-relation-hold? > args)))
+      (env-bind-builtin '>= 2 #t
+        (lambda (args)
+          (expect-real-list args)
+          (transitive-relation-hold? >= args)))
+      (env-bind-builtin 'display 1 #f
+        (lambda (args)
+          (v-display (car args))
+          v-command-ret))
+      (env-bind-builtin 'write 1 #f
+        (lambda (args)
+          (v-write (car args))
+          v-command-ret))
+      (env-bind-builtin 'newline 0 #f
+        (lambda (_) (newline) v-command-ret))
+      (env-bind-builtin 'flush 0 #f
+        (lambda (args)
+          (flush)
+          v-command-ret))
+      (env-bind-builtin 'symbol->string 1 #f
+        (lambda (args)
+          (define sym (car args))
+          (cond
+            ((symbol? sym) (symbol->string sym))
+            (else (raise-type-error "symbol" sym)))))
+      (env-bind-builtin 'raise 1 #f
+        (lambda (args) (raise (car args))))
+    ))
+  (define program '(
+    (define (not obj) (if obj #f #t))
+
+    (define (cadr obj) (car (cdr obj)))
+
+    (define (fold kons knil lis)
+      (let fold ((knil knil) (lis lis))
+        (if (null? lis) knil
+          (fold (kons (car lis) knil) (cdr lis)))))
+    
+    (define (memq obj lis)
+      (let memq ((lis lis))
         (cond
-          ((tagged? v-pair-tag p) (v-pair.car (untag p)))
-          (else (raise-type-error "pair" p)))))
-    (env-bind-builtin 'cdr 1 #f
-      (lambda (args)
-        (define p (car args))
+          ((null? lis) #f)
+          ((eq? obj (car lis)) lis)
+          (else (memq (cdr lis))))))
+    
+    (define (list? obj)
+      (let list? ((mem '()) (obj obj))
         (cond
-          ((tagged? v-pair-tag p) (v-pair.cdr (untag p)))
-          (else (raise-type-error "pair" p)))))
-    (env-bind-builtin 'set-car! 2 #f
-      (lambda (args)
-        (define p (car args))
-        (define v (cadr args))
-        (cond
-          ((tagged? v-pair-tag p)
-            (v-pair.set-car! (untag p) v)
-            v-command-ret)
-          (else (raise-type-error "pair" p)))))
-    (env-bind-builtin 'set-cdr! 2 #f
-      (lambda (args)
-        (define p (car args))
-        (define v (cadr args))
-        (cond
-          ((tagged? v-pair-tag p)
-            (v-pair.set-cdr! (untag p) v)
-            v-command-ret)
-          (else (raise-type-error "pair" p)))))
-    (env-bind-builtin 'null? 1 #f
-      (lambda (args) (null? (car args))))
-    (env-bind-builtin '+ 0 #t
-      (lambda (args)
-        (expect-number-list args)
-        (fold + 0 args)))
-    (env-bind-builtin '* 0 #t
-      (lambda (args)
-        (expect-number-list args)
-        (fold * 1 args)))
-    (env-bind-builtin '- 1 #t
-      (lambda (args)
-        (expect-number-list args)
-        (cond
-          ((null? (cdr args)) (- (car args)))
-          (else (fold-left - (car args) (cdr args))))))
-    (env-bind-builtin '= 2 #t
-      (lambda (args)
-        (expect-number-list args)
-        (transitive-relation-hold? = args)))
-    (env-bind-builtin '< 2 #t
-      (lambda (args)
-        (expect-real-list args)
-        (transitive-relation-hold? < args)))
-    (env-bind-builtin '> 2 #t
-      (lambda (args)
-        (expect-real-list args)
-        (transitive-relation-hold? > args)))
-    (env-bind-builtin '>= 2 #t
-      (lambda (args)
-        (expect-real-list args)
-        (transitive-relation-hold? >= args)))
-    (env-bind-builtin 'display 1 #f
-      (lambda (args)
-        (v-display (car args))
-        v-command-ret))
-    (env-bind-builtin 'write 1 #f
-      (lambda (args)
-        (v-write (car args))
-        v-command-ret))
-    (env-bind-builtin 'newline 0 #f
-      (lambda (_) (newline) v-command-ret))
-    (env-bind-builtin 'flush 0 #f
-      (lambda (args)
-        (flush)
-        v-command-ret))
-    (env-bind-builtin 'raise 1 #f
-      (lambda (args) (raise (car args))))
+          ((null? obj) #t)
+          ((pair? obj)
+            (if (memq obj mem) #f
+              (list? (cons obj mem) (cdr obj))))
+          (else #f))))
   ))
+  (cadr (eval-toplevel-list program env)))
 
 
 

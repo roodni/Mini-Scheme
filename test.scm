@@ -11,10 +11,74 @@
       (else (error "fail" expected obj)))))
 
 ;; built-in procedure
-; null?
-(mini-test #t '(
-  (null? '())
+; eq?
+(mini-test #f '( (eq? 'a 'b) ))
+(mini-test #f '( (eq? 2 2.0) ))
+(mini-test #f '(
+  (eq? (cons 1 2) (cons 1 2))
 ))
+(mini-test #f '(
+  (eq? (lambda () 1) (lambda () 2))
+))
+(mini-test #f '( (eq? #f 'nil) ))
+(mini-test #t '( (eq? 'a 'a) ))
+(mini-test #f '(
+  (eq? (list 'a) (list 'a))
+))
+(mini-test #t '( (eq? '() '()) ))
+(mini-test #t '( (eq? car car) ))
+(mini-test #t '(
+  (let ((x '(a)))
+    (eq? x x))
+))
+(mini-test #t '(
+  (let ((p (lambda (x) x)))
+    (eq? p p))
+))
+
+; not
+(mini-test #f '( (not #t) ))
+(mini-test #t '( (not #f) ))
+(mini-test #f '( (not 3) ))
+(mini-test #f '( (not (list)) ))
+
+; symbol->string
+(mini-test "mini" '(
+  (symbol->string 'mini)
+))
+
+; procedure?
+(mini-test #t '(
+  (procedure? procedure?)
+))
+(mini-test #t '(
+  (procedure? (lambda (x) x))
+))
+(mini-test #f '(
+  (procedure? 2)
+))
+
+; boolean?
+(mini-test #t '( (boolean? #f) ))
+(mini-test #t '( (boolean? #t) ))
+(mini-test #f '( (boolean? 1) ))
+
+; number?
+(mini-test #t '( (number? 1) ))
+(mini-test #f '( (number? "1") ))
+
+; string?
+(mini-test #t '( (string? "mini") ))
+(mini-test #f '( (string? 0) ))
+
+; pair?
+(mini-test #t '(
+  (pair? (cons 1 2))
+))
+(mini-test #f '( (pair? '()) ))
+
+; null?
+(mini-test #t '( (null? '()) ))
 (mini-test #f '(
   (null? (cons 1 2))
 ))
@@ -53,74 +117,38 @@
   (car (cdr a))
 ))
 
+; cadr
+(mini-test 2 '(
+  (cadr (list 1 2 3))
+))
+
 ; =
-(mini-test #f '(
-  (= 1 1 1 2)
-))
-(mini-test #f '(
-  (= 1 0 1 1)
-))
-(mini-test #t '(
-  (= 1 1 1 1)
-))
-(mini-test #f '(
-  (= 1 2)
-))
-(mini-test #t '(
-  (= 1 1)
-))
+(mini-test #f '( (= 1 1 1 2) ))
+(mini-test #f '( (= 1 0 1 1) ))
+(mini-test #t '( (= 1 1 1 1) ))
+(mini-test #f '( (= 1 2) ))
+(mini-test #t '( (= 1 1) ))
 
 ; <
-(mini-test #t '(
-  (< 1 2)
-))
-(mini-test #f '(
-  (< 1 1)
-))
-(mini-test #f '(
-  (< 1 0)
-))
-(mini-test #t '(
-  (< 1 2 3)
-))
-(mini-test #f '(
-  (< 1 2 1)
-))
+(mini-test #t '( (< 1 2) ))
+(mini-test #f '( (< 1 1) ))
+(mini-test #f '( (< 1 0) ))
+(mini-test #t '( (< 1 2 3) ))
+(mini-test #f '( (< 1 2 1) ))
 
 ; >
-(mini-test #f '(
-  (> 1 2)
-))
-(mini-test #f '(
-  (> 2 2)
-))
-(mini-test #t '(
-  (> 3 2)
-))
-(mini-test #t '(
-  (> 4 3 2 1)
-))
-(mini-test #f '(
-  (> 4 3 0 1)
-))
+(mini-test #f '( (> 1 2) ))
+(mini-test #f '( (> 2 2) ))
+(mini-test #t '( (> 3 2) ))
+(mini-test #t '( (> 4 3 2 1) ))
+(mini-test #f '( (> 4 3 0 1) ))
 
 ; >=
-(mini-test #f '(
-  (>= 1 2)
-))
-(mini-test #t '(
-  (>= 2 2)
-))
-(mini-test #t '(
-  (>= 3 2)
-))
-(mini-test #t '(
-  (>= 2 1 1 1)
-))
-(mini-test #f '(
-  (>= 4 3 0 1)
-))
-
+(mini-test #f '( (>= 1 2) ))
+(mini-test #t '( (>= 2 2) ))
+(mini-test #t '( (>= 3 2) ))
+(mini-test #t '( (>= 2 1 1 1) ))
+(mini-test #f '( (>= 4 3 0 1) ))
 
 ; -
 (mini-test -7 '(
@@ -162,6 +190,41 @@
   (list 1 2 3 4)
 ))
 
+; fold
+(mini-test 23 '(
+  (fold + 0 '(3 1 4 1 5 9))
+))
+(mini-test '(e d c b a) '(
+  (fold cons '() '(a b c d e))
+))
+
+; memq
+(mini-test '(a b c) '(
+  (memq 'a '(a b c))
+))
+(mini-test '(b c) '(
+  (memq 'b '(a b c))
+))
+(mini-test #f '(
+  (memq 'a '(d b c))
+))
+(mini-test #f '(
+  (memq (list 'a) '(b (a) c))
+))
+
+; list?
+(mini-test #t '( (list? '()) ))
+(mini-test #t '(
+  (list? (list 1 2 3))
+))
+(mini-test #f '(
+  (list? (cons 1 2))
+))
+(mini-test #f '(
+  (define l '(1 2))
+  (set-cdr! (cdr l) l)
+  (list? l)
+))
 
 ;; other
 ; load

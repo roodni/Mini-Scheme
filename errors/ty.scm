@@ -61,3 +61,8 @@
 (expect-error '(
   (>= 1 2+i 3)
 ))
+
+; symbol->string
+(expect-error '(
+  (symbol->string "a")
+))

@@ -26,7 +26,6 @@
 ))
 
 ; >
-; <
 (expect-error '(
   (>)
 ))
@@ -97,9 +96,33 @@
 ))
 
 ; null?
-(expect-error '(
-  (null?)
-))
-(expect-error '(
-  (null? '() '())
-))
+(expect-error '( (null?) ))
+(expect-error '( (null? '() '()) ))
+
+; pair?
+(expect-error '( (pair?) ))
+(expect-error '( (pair? 1 2) ))
+
+; string?
+(expect-error '( (string?) ))
+(expect-error '( (string? 1 2) ))
+
+; number?
+(expect-error '( (number?) ))
+(expect-error '( (number? 1 2) ))
+
+; boolean?
+(expect-error '( (boolean?) ))
+(expect-error '( (boolean? 1 2) ))
+
+; procedure?
+(expect-error '( (procedure?) ))
+(expect-error '( (procedure? 1 2) ))
+
+; symbol->string
+(expect-error '( (symbol->string) ))
+(expect-error '( (symbol->string 'a 'b) ))
+
+; eq?
+(expect-error '( (eq? 'a) ))
+(expect-error '( (eq? 'a 'b 'c) ))
