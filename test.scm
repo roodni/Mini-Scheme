@@ -163,7 +163,13 @@
 ))
 
 
-;; expression
+;; other
+; load
+(mini-test '46 '(
+  (load "./samples/hoge.scm")
+  (f)
+))
+
 ; guard
 (mini-test 'ok '(
   (guard

@@ -463,6 +463,10 @@
       (pair-memo '())
       (v v) )
     (cond
+      ((not (mini-value? v))
+        (display "[FATAL: ")
+        (write v)
+        (display "]"))
       ((symbol? v) (base-print v))
       ((number? v) (base-print v))
       ((boolean? v) (base-print v))
@@ -508,12 +512,8 @@
         (display "[error: ")
         (msg-print (untag v))
         (display "]"))
-      ((mini-value? v)
-        (display "[non-writable: ")
-        (write v)
-        (display "]"))
       (else
-        (display "[FATAL: ")
+        (display "[non-writable: ")
         (write v)
         (display "]")))))
 
@@ -675,6 +675,8 @@
       (lambda (args)
         (v-write (car args))
         v-command-ret))
+    (env-bind-builtin 'newline 0 #f
+      (lambda (_) (newline) v-command-ret))
     (env-bind-builtin 'flush 0 #f
       (lambda (args)
         (flush)
@@ -841,6 +843,26 @@
           (prim (cadr def-parsed))
           (value (eval-prim prim env-empty top-env)) )
         (list v-command-ret (env-define var value top-env))))
+    ((match? '('load string) toplevel)
+      (let*
+        ( (filename (cadr toplevel))
+          (port
+            (guard
+              (_ (else
+                  (raise-v-error "cannot open file: " (msg-w filename))))
+              (open-input-file filename)))
+          (program
+            (guard
+              (_ (else
+                  (close-port port)
+                  (raise-v-error "read failed while loading file: " (msg-w filename))))
+              (let loop ((program-rev '()))
+                (define toplevel (read port))
+                (cond
+                  ((eof-object? toplevel) (reverse program-rev))
+                  (else
+                    (loop (cons toplevel program-rev))))))) )
+        (eval-toplevel-list program top-env)))
     (else
       (let*
         ( (prim (parse-expr toplevel))
