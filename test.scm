@@ -407,6 +407,26 @@
 ))
 
 ;; other
+; do
+(mini-test 3 '(
+  (do ((i 3 i)) (i) 0)
+))
+(mini-test '(45 36 28 21 15 10 6 3 1 0 0) '(
+  (define res '())
+  (do
+    ( (i 0 (+ i 1))
+      (j 0 (+ i j)) )
+    ((= i 10) (cons j res))
+    (set! res (cons j res)))
+))
+(mini-test 25 '(
+  (let ((x '(1 3 5 7 9)))
+    (do
+      ( (x x (cdr x))
+        (sum 0 (+ sum (car x))) )
+      ((null? x) sum)))
+))
+
 ; letrec
 (mini-test '(#t #f #t) '(
   (letrec

@@ -141,6 +141,15 @@
 (define (prim-guard.test-clauses g) (car (cadr g)))
 (define (prim-guard.else-prim-opt g) (cadr (cadr g)))
 (define (prim-guard.body g) (caddr g))
+;; do
+(define prim-do-tag 'prim-do)
+(define (prim-do-tagged specs test res-opt body-opt)
+  (tag prim-do-tag
+    (list specs test res-opt body-opt)))
+(define (prim-do.specs d) (car d))
+(define (prim-do.test d) (cadr d))
+(define (prim-do.res-opt d) (caddr d))
+(define (prim-do.body-opt d) (cadddr d))
 
 ;; expr -> prim
 (define parse-error-tag 'parse-error)
@@ -426,6 +435,31 @@
               (clauses (parse-cond-clauses clauses expr))
               (body (parse-body (cddr expr) expr)) )
             (prim-guard-tagged var clauses body)))
+        (else (raise-parse-error expr))))
+    ((match? '('do . _) expr)
+      (cond
+        ((match? '((* (symbol _ _) ()) (_ . _) . _) (cdr expr))
+          (let*
+            ( (specs
+                (map
+                  (lambda (spec)
+                    (list
+                      (car spec)
+                      (parse-expr (cadr spec))
+                      (parse-expr (caddr spec))))
+                  (cadr expr)))
+              (clause (caddr expr))
+              (test (parse-expr (car clause)))
+              (res-opt
+                (cond
+                  ((null? (cdr clause)) #f)
+                  (else
+                    (let ((prim+ (parse-expr+ (cdr clause) expr)))
+                      (prim-begin-tagged (car prim+) (cadr prim+))))))
+              (body-opt
+                (if (null? (cdddr expr)) #f
+                  (parse-body (cdddr expr) expr))) )
+            (prim-do-tagged specs test res-opt body-opt)))
         (else (raise-parse-error expr))))
     ((list? expr)
       (let
@@ -724,7 +758,7 @@
                     (loop (v-pair.car l) (v-pair.car r))
                     (loop (v-pair.cdr l) (v-pair.cdr r)))))
               ((test string?) (equal? l r))
-              (else (eq? l r))))))
+              (else (eqv? l r))))))
       (env-bind-builtin '+ 0 #t
         (lambda (args)
           (expect-number-list args)
@@ -812,6 +846,11 @@
             (else (raise-type-error "number" str)))))
       (env-bind-builtin 'raise 1 #f
         (lambda (args) (raise (car args))))
+      (env-bind-builtin 'error 1 #t
+        (lambda (args)
+          (raise-v-error
+            (car args)
+            (map (lambda (v) (msg " " (msg-v v))) (cdr args)))))
       (env-bind-builtin '<system-error> 1 #f
         (lambda (args) (<system-error> (car args))))
       (env-bind-builtin '<read-error> 1 #f
@@ -1020,6 +1059,36 @@
                           (eval-prim then-prim top-env env)
                           (loop (cdr test-clauses))))))))))
           (eval-prim body top-env env))))
+    ((tagged? prim-do-tag prim)
+      (let*
+        ( (d (untag prim))
+          (specs (prim-do.specs d))
+          (test (prim-do.test d))
+          (res-opt (prim-do.res-opt d))
+          (body-opt (prim-do.body-opt d))
+          (env
+            (fold
+              (lambda (spec env-new)
+                (define var (car spec))
+                (define init (cadr spec))
+                (env-extend var (eval-prim init top-env env) env-new))
+              env specs)) )
+        (let loop ((env env))
+          (let* ( (test-v (eval-prim test top-env env)) )
+            (cond
+              (test-v
+                (if res-opt
+                  (eval-prim res-opt top-env env)
+                  test-v))
+              (else
+                (if body-opt (eval-prim body-opt top-env env))
+                (loop
+                  (fold
+                    (lambda (spec env-new)
+                      (define var (car spec))
+                      (define step (caddr spec))
+                      (env-extend var (eval-prim step top-env env) env-new))
+                    env specs))))))))
     ((tagged? prim-call-tag prim)
       (let*
         ( (prim (untag prim))

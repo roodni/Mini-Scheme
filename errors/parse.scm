@@ -165,3 +165,8 @@
 (expect-parse-error '(
   (letrec ())
 ))
+
+; do
+(expect-parse-error '(
+  (do (a 1 a) () 1)
+))
