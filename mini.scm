@@ -747,6 +747,10 @@
         (lambda (args)
           (expect-real-list args)
           (transitive-relation-hold? >= args)))
+      (env-bind-builtin '<= 2 #t
+        (lambda (args)
+          (expect-real-list args)
+          (transitive-relation-hold? <= args)))
       (env-bind-builtin 'display 1 #f
         (lambda (args)
           (v-display (car args))

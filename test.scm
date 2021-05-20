@@ -215,6 +215,12 @@
 (mini-test #t '( (>= 2 1 1 1) ))
 (mini-test #f '( (>= 4 3 0 1) ))
 
+; <=
+(mini-test #t '( (<= 1 2) ))
+(mini-test #t '( (<= 1 1) ))
+(mini-test #f '( (<= 1 0) ))
+(mini-test #t '( (<= 1 2 3) ))
+
 ; -
 (mini-test -7 '(
   (- 1 3 5)
