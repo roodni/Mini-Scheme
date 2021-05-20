@@ -1112,8 +1112,9 @@
                 (cond
                   ((eof-object? toplevel) (reverse program-rev))
                   (else
-                    (loop (cons toplevel program-rev))))))) )
-        (eval-toplevel-list program top-env)))
+                    (loop (cons toplevel program-rev)))))))
+          (res (eval-toplevel-list program top-env)) )
+          (list '() (cadr res)) ))
     (else
       (let*
         ( (prim (parse-expr toplevel))
