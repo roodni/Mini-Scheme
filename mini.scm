@@ -555,7 +555,7 @@
 
 (define env-empty '())
 (define (env-lookup var env)
-  (assoc var env))
+  (assq var env))
 (define (env-extend var value env)
   (cons (env-bind var value) env))
 (define (env-define var value env)
@@ -640,10 +640,14 @@
         (lambda (args) (null? (car args))))
       (env-bind-builtin 'pair? 1 #f
         (lambda (args) (tagged? v-pair-tag (car args))))
+      (env-bind-builtin 'symbol? 1 #f
+        (lambda (args) (symbol? (car args))))
       (env-bind-builtin 'string? 1 #f
         (lambda (args) (string? (car args))))
       (env-bind-builtin 'number? 1 #f
         (lambda (args) (number? (car args))))
+      (env-bind-builtin 'real? 1 #f
+        (lambda (args) (real? (car args))))
       (env-bind-builtin 'boolean? 1 #f
         (lambda (args) (boolean? (car args))))
       (env-bind-builtin 'procedure? 1 #f
@@ -653,6 +657,19 @@
               (tagged? v-builtin-tag obj))))
       (env-bind-builtin 'eq? 2 #f
         (lambda (args) (eq? (car args) (cadr args))))
+      (env-bind-builtin 'equal? 2 #f
+        (lambda (args)
+          (let loop ((l (car args)) (r (cadr args)))
+            (define (test q?) (and (q? l) (q? r)))
+            (cond
+              ((test (lambda (x) (tagged? v-pair-tag x)))
+                (let ((l (untag l)) (r (untag r)))
+                  (and
+                    (loop (v-pair.car l) (v-pair.car r))
+                    (loop (v-pair.cdr l) (v-pair.cdr r)))))
+              ((test number?) (equal? l r))
+              ((test string?) (equal? l r))
+              (else (eq? l r))))))
       (env-bind-builtin '+ 0 #t
         (lambda (args)
           (expect-number-list args)
@@ -710,11 +727,43 @@
     (define (not obj) (if obj #f #t))
 
     (define (cadr obj) (car (cdr obj)))
+    (define (cddr obj) (cdr (cdr obj)))
+    (define (caddr obj) (car (cddr obj)))
+    (define (cdddr obj) (cdr (cddr obj)))
+    (define (cadddr obj) (car (cdddr obj)))
 
     (define (fold kons knil lis)
       (let fold ((knil knil) (lis lis))
         (if (null? lis) knil
           (fold (kons (car lis) knil) (cdr lis)))))
+    (define (reverse lis) (fold cons '() lis))
+    (define (fold-left snok knil lis)
+      (define (kons a b) (snok b a))
+      (fold kons knil lis))
+
+    (define (fold-right kons knil lis)
+      (let fold-right ((lis lis))
+        (if (null? lis) knil
+          (kons
+            (car lis)
+            (fold-right (cdr lis))))))
+    (define (map proc lis)
+      (fold-right
+        (lambda (x rest)
+          (cons (proc x) rest))
+        '() lis))
+    
+    (define (for-each proc lis)
+      (let for-each ((lis lis))
+        (cond
+          ((null? lis) '())
+          (else
+            (proc (car lis))
+            (for-each (cdr lis))))))
+
+    (define (length lis)
+      (let loop ((n 0) (lis lis))
+        (if (null? lis) n (loop (+ n 1) (cdr lis)))))
     
     (define (memq obj lis)
       (let memq ((lis lis))
@@ -722,6 +771,27 @@
           ((null? lis) #f)
           ((eq? obj (car lis)) lis)
           (else (memq (cdr lis))))))
+    (define (assq obj alist)
+      (let assq ((alist alist))
+        (cond
+          ((null? alist) #f)
+          ((eq? obj (car (car alist))) (car alist))
+          (else (assq (cdr alist))))))
+
+    (define (append . lists)
+      (let loop ((mid-lists-rev '()) (lists lists))
+        (cond
+          ((null? lists) '())
+          ((null? (cdr lists))
+            (fold
+              (lambda (lis appended)
+                (fold-right cons appended lis))
+              (car lists)
+              mid-lists-rev))
+          (else
+            (loop
+              (cons (car lists) mid-lists-rev)
+              (cdr lists))))))
     
     (define (list? obj)
       (let list? ((mem '()) (obj obj))

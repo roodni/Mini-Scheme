@@ -111,6 +111,10 @@
 (expect-error '( (number?) ))
 (expect-error '( (number? 1 2) ))
 
+; real?
+(expect-error '( (real?) ))
+(expect-error '( (real? 1 2) ))
+
 ; boolean?
 (expect-error '( (boolean?) ))
 (expect-error '( (boolean? 1 2) ))
@@ -118,6 +122,10 @@
 ; procedure?
 (expect-error '( (procedure?) ))
 (expect-error '( (procedure? 1 2) ))
+
+; symbol?
+(expect-error '( (symbol?) ))
+(expect-error '( (symbol? 'a 'b) ))
 
 ; symbol->string
 (expect-error '( (symbol->string) ))

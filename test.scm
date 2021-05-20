@@ -11,6 +11,29 @@
       (else (error "fail" expected obj)))))
 
 ;; built-in procedure
+; equal?
+(mini-test #t '( (equal? 'a 'a) ))
+(mini-test #t '( (equal? '() '()) ))
+(mini-test #t '( (equal? car car) ))
+(mini-test #t '(
+  (let ((x '(a)))
+    (equal? x x))
+))
+(mini-test #t '(
+  (let ((p (lambda (x) x)))
+    (equal? p p))
+))
+(mini-test #t '( (equal? '(a) '(a)) ))
+(mini-test #t '(
+  (equal? '(a (b) c) '(a (b) c))
+))
+(mini-test #t '( (equal? "abc" "abc") ))
+(mini-test #t '( (equal? 2 2) ))
+(mini-test #f '( (equal? 'a 'b) ))
+(mini-test #f '( (equal? "abc" "cab") ))
+(mini-test #f '( (equal? 2 3) ))
+(mini-test #f '( (equal? '(a b) #t) ))
+
 ; eq?
 (mini-test #f '( (eq? 'a 'b) ))
 (mini-test #f '( (eq? 2 2.0) ))
@@ -47,6 +70,10 @@
   (symbol->string 'mini)
 ))
 
+; symbol?
+(mini-test #t '( (symbol? 'sym) ))
+(mini-test #f '( (symbol? "sym") ))
+
 ; procedure?
 (mini-test #t '(
   (procedure? procedure?)
@@ -66,6 +93,10 @@
 ; number?
 (mini-test #t '( (number? 1) ))
 (mini-test #f '( (number? "1") ))
+
+; real?
+(mini-test #t '( (real? 3) ))
+(mini-test #f '( (real? 3+1i) ))
 
 ; string?
 (mini-test #t '( (string? "mini") ))
@@ -117,9 +148,20 @@
   (car (cdr a))
 ))
 
-; cadr
 (mini-test 2 '(
   (cadr (list 1 2 3))
+))
+(mini-test '(3) '(
+  (cddr (list 1 2 3))
+))
+(mini-test 3 '(
+  (caddr (list 1 2 3))
+))
+(mini-test '(4) '(
+  (cdddr (list 1 2 3 4))
+))
+(mini-test 4 '(
+  (cadddr (list 1 2 3 4))
 ))
 
 ; =
@@ -190,12 +232,50 @@
   (list 1 2 3 4)
 ))
 
+; length
+(mini-test 0 '( (length '()) ))
+(mini-test 2 '(
+  (length (list 12 34))
+))
+
 ; fold
 (mini-test 23 '(
   (fold + 0 '(3 1 4 1 5 9))
 ))
 (mini-test '(e d c b a) '(
   (fold cons '() '(a b c d e))
+))
+
+; reverse
+(mini-test '(c b a) '(
+  (reverse '(a b c))
+))
+
+; fold-left
+(mini-test 15 '(
+  (fold-left + 0 '(1 2 3 4 5))
+))
+(mini-test '((((z . a) . b) . c) . d) '(
+  (fold-left cons 'z '(a b c d))
+))
+
+; fold-right
+(mini-test 23 '(
+  (fold-right + 0 '(3 1 4 1 5 9))
+))
+(mini-test '(a b c d e) '(
+  (fold-right cons '() '(a b c d e))
+))
+
+; for-each
+(mini-test v-command-ret '(
+  (for-each not '(#t #f))
+))
+(mini-test '(3 2 1) '(
+  (define res '())
+  (define (push x) (set! res (cons x res)))
+  (for-each push '(1 2 3))
+  res
 ))
 
 ; memq
@@ -210,6 +290,35 @@
 ))
 (mini-test #f '(
   (memq (list 'a) '(b (a) c))
+))
+; (mini-test '(a b c) '(
+;   (set! eq? 'hoge)
+;   (memq 'a '(a b c))
+; ))
+
+; assq
+(mini-test '(a 1) '(
+  (assq 'a '((a 1) (b 2) (b 3) (c 4)))
+))
+(mini-test '(b 2) '(
+  (assq 'b '((a 1) (b 2) (b 3) (c 4)))
+))
+(mini-test #f '(
+  (assq 'd '((a 1) (b 2) (b 3) (c 4)))
+))
+
+; map
+(mini-test '(b e h) '(
+  (map cadr '((a b) (d e) (g h)))
+))
+
+; append
+(mini-test '() '( (append) ))
+(mini-test '(1 2 3) '(
+  (append '(1 2 3))
+))
+(mini-test '(a b c d e f) '(
+  (append '(a b) '(c d) '(e f))
 ))
 
 ; list?
