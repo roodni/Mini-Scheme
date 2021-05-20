@@ -72,9 +72,26 @@
   (<= 1 2+i 3)
 ))
 
+; string-append
+(expect-error '(
+  (string-append "a" 2 "c")
+))
+
 ; symbol->string
 (expect-error '(
   (symbol->string "a")
+))
+; string->symbol
+(expect-error '(
+  (string->symbol 'sym)
+))
+; string->number
+(expect-error '(
+  (string->number 12)
+))
+; number->string
+(expect-error '(
+  (number->string "")
 ))
 
 ; read

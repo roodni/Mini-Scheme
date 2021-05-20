@@ -632,6 +632,11 @@
       (lambda (x)
         (if (not (real? x)) (raise-type-error "real number" x)))
       vl))
+  (define (expect-string-list vl)
+    (for-each
+      (lambda (x)
+        (if (not (string? x)) (raise-type-error "string" x)))
+      vl))
   (define (transitive-relation-hold? rel lis)
     (define kar (car lis))
     (define kdr (cdr lis))
@@ -774,12 +779,34 @@
         (lambda (args)
           (flush)
           v-command-ret))
+      (env-bind-builtin 'string-append 0 #t
+        (lambda (args)
+          (expect-string-list args)
+          (fold-right string-append "" args)))
       (env-bind-builtin 'symbol->string 1 #f
         (lambda (args)
           (define sym (car args))
           (cond
             ((symbol? sym) (symbol->string sym))
             (else (raise-type-error "symbol" sym)))))
+      (env-bind-builtin 'string->symbol 1 #f
+        (lambda (args)
+          (define str (car args))
+          (cond
+            ((string? str) (string->symbol str))
+            (else (raise-type-error "string" str)))))
+      (env-bind-builtin 'string->number 1 #f
+        (lambda (args)
+          (define str (car args))
+          (cond
+            ((string? str) (string->number str))
+            (else (raise-type-error "string" str)))))
+      (env-bind-builtin 'number->string 1 #f
+        (lambda (args)
+          (define str (car args))
+          (cond
+            ((number? str) (number->string str))
+            (else (raise-type-error "number" str)))))
       (env-bind-builtin 'raise 1 #f
         (lambda (args) (raise (car args))))
       (env-bind-builtin '<system-error> 1 #f

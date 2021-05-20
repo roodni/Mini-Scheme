@@ -88,9 +88,30 @@
 (mini-test #f '( (not 3) ))
 (mini-test #f '( (not (list)) ))
 
+; string-append
+(mini-test "" '( (string-append) ))
+(mini-test "abcde" '(
+  (string-append "ab" "cd" "e")
+))
+
 ; symbol->string
 (mini-test "mini" '(
   (symbol->string 'mini)
+))
+; string->symbol
+(mini-test 'mini '(
+  (string->symbol "mini")
+))
+; string->number
+(mini-test 34 '(
+  (string->number "34")
+))
+(mini-test #f '(
+  (string->number "")
+))
+; number->string
+(mini-test "123" '(
+  (number->string 123)
 ))
 
 ; symbol?

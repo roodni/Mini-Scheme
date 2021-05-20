@@ -151,6 +151,15 @@
 ; symbol->string
 (expect-error '( (symbol->string) ))
 (expect-error '( (symbol->string 'a 'b) ))
+; string->symbol
+(expect-error '( (string->symbol) ))
+(expect-error '( (string->symbol "a" "b") ))
+; string->number
+(expect-error '( (string->number) ))
+(expect-error '( (string->number "a" "b") ))
+; number->string
+(expect-error '( (number->string) ))
+(expect-error '( (number->string 1 2) ))
 
 ; eq?
 (expect-error '( (eq? 'a) ))
