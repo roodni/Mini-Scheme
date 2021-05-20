@@ -536,8 +536,9 @@
         (display "]"))
       ((eof-object? v) (display "[eof]"))
       ((input-port? v) (display "[input-port]"))
+      ((<unhandled-signal-error> v) (display "[signal-error]"))
       (else
-        (display "[")
+        (display "[non-writable: ")
         (write v)
         (display "]")))))
 
@@ -560,7 +561,8 @@
       (eof-object? obj)
       (input-port? obj)
       (<read-error> obj)
-      (<system-error> obj))
+      (<system-error> obj)
+      (<unhandled-signal-error> obj))
     #t #f))
 
 (define (v->obj v)
@@ -814,6 +816,8 @@
         (lambda (args) (<system-error> (car args))))
       (env-bind-builtin '<read-error> 1 #f
         (lambda (args) (<read-error> (car args))))
+      (env-bind-builtin '<unhandled-signal-error> 1 #f
+        (lambda (args) (<unhandled-signal-error> (car args))))
       (env-bind-builtin 'read 0 #t
         (lambda (args)
           (let*
