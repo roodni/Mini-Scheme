@@ -165,6 +165,10 @@
 (expect-error '( (eq? 'a) ))
 (expect-error '( (eq? 'a 'b 'c) ))
 
+; eqv?
+(expect-error '( (eqv? 'a) ))
+(expect-error '( (eqv? 'a 'b 'c) ))
+
 ; equal?
 (expect-error '( (equal? 'a) ))
 (expect-error '( (equal? 'a 'b 'c) ))

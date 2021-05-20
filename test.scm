@@ -57,6 +57,10 @@
 (mini-test #f '( (equal? 2 3) ))
 (mini-test #f '( (equal? '(a b) #t) ))
 
+; eqv?
+(mini-test #f '( (eqv? 1 2) ))
+(mini-test #t '( (eqv? 1 1) ))
+
 ; eq?
 (mini-test #f '( (eq? 'a 'b) ))
 (mini-test #f '( (eq? 2 2.0) ))

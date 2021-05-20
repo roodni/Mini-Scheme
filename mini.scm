@@ -709,6 +709,8 @@
         (lambda (args) (eof-object? (car args))))
       (env-bind-builtin 'eq? 2 #f
         (lambda (args) (eq? (car args) (cadr args))))
+      (env-bind-builtin 'eqv? 2 #f
+        (lambda (args) (eqv? (car args) (cadr args))))
       (env-bind-builtin 'equal? 2 #f
         (lambda (args)
           (let loop ((l (car args)) (r (cadr args)))
@@ -719,7 +721,6 @@
                   (and
                     (loop (v-pair.car l) (v-pair.car r))
                     (loop (v-pair.cdr l) (v-pair.cdr r)))))
-              ((test number?) (equal? l r))
               ((test string?) (equal? l r))
               (else (eq? l r))))))
       (env-bind-builtin '+ 0 #t
@@ -846,6 +847,7 @@
     ))
   (define program '(
     (define (not obj) (if obj #f #t))
+    (define (neq? a b) (not (eq? a b)))
 
     (define (cadr obj) (car (cdr obj)))
     (define (cddr obj) (cdr (cdr obj)))
