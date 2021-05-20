@@ -66,3 +66,18 @@
 (expect-error '(
   (symbol->string "a")
 ))
+
+; read
+(expect-error '(
+  (read "port")
+))
+
+; open-input-file
+(expect-error '(
+  (open-input-file 'filename)
+))
+
+; close-port
+(expect-error '(
+  (close-port "port")
+))

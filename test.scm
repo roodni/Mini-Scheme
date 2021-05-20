@@ -11,6 +11,29 @@
       (else (error "fail" expected obj)))))
 
 ;; built-in procedure
+; eof-object?
+(mini-test #t '(
+  (define port (open-input-file "./samples/empty.scm"))
+  (define eof (read port))
+  (close-port port)
+  (eof-object? eof)
+))
+(mini-test #f '( (eof-object? 'eof) ))
+
+; open-input-file input-port? read close-input-file
+(mini-test '(define a 12) '(
+  (define port (open-input-file "./samples/hoge.scm"))
+  (if (not (input-port? port)) (raise "must be port"))
+  (define e (read port))
+  (close-port port)
+  e
+))
+(mini-test v-command-ret '(
+  (define port (open-input-file "./samples/empty.scm"))
+  (close-port port)
+))
+(mini-test #f '( (input-port? 'port) ))
+
 ; equal?
 (mini-test #t '( (equal? 'a 'a) ))
 (mini-test #t '( (equal? '() '()) ))

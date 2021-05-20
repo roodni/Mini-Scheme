@@ -49,4 +49,24 @@
     (< "hello" "world"))
   (newline)
 
+  (define port (open-input-file "./samples/empty.scm"))
+  (write port)
+  (newline)
+  (write (read port))
+  (newline)
+  (close-port port)
+
+  (guard
+    (err
+      ((<system-error> err) (write err)))
+    (open-input-file "./samples/undefined"))
+  (newline)
+
+  (define port (open-input-file "./samples/err.scm"))
+  (guard
+    (err
+      ((<read-error> err) (write err)))
+    (read port))
+  (newline)
+
 ) (env-init))

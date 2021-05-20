@@ -274,18 +274,9 @@
       (cond
         ((match? '(_) (cdr expr))
           (tag prim-const-tag
-            (let quoted-value ((q-expr (cadr expr)))
-              (cond
-                ((symbol? q-expr) q-expr)
-                ((number? q-expr) q-expr)
-                ((boolean? q-expr) q-expr)
-                ((string? q-expr) q-expr)
-                ((null? q-expr) q-expr)
-                ((pair? q-expr)
-                  (v-pair-tagged
-                    (quoted-value (car q-expr))
-                    (quoted-value (cdr q-expr))))
-                (else (raise-parse-error expr))))))
+            (obj->v
+              (cadr expr)
+              (lambda () (raise-parse-error expr)))))
         (else (raise-parse-error expr))))
     ((match? '('lambda . _) expr)
       (cond
@@ -512,8 +503,10 @@
         (display "[error: ")
         (msg-print (untag v))
         (display "]"))
+      ((eof-object? v) (display "[eof]"))
+      ((input-port? v) (display "[input-port]"))
       (else
-        (display "[non-writable: ")
+        (display "[")
         (write v)
         (display "]")))))
 
@@ -521,17 +514,23 @@
 (define (v-write v) (v-print write v))
 
 (define (mini-value? obj)
-  (or
-    (symbol? obj)
-    (number? obj)
-    (boolean? obj)
-    (string? obj)
-    (null? obj)
-    (tagged? v-builtin-tag obj)
-    (tagged? v-lambda-tag obj)
-    (tagged? v-pair-tag obj)
-    (tagged? v-error-tag obj)
-    (tagged? v-void-tag obj)))
+  (if
+    (or
+      (symbol? obj)
+      (number? obj)
+      (boolean? obj)
+      (string? obj)
+      (null? obj)
+      (tagged? v-builtin-tag obj)
+      (tagged? v-lambda-tag obj)
+      (tagged? v-pair-tag obj)
+      (tagged? v-error-tag obj)
+      (tagged? v-void-tag obj)
+      (eof-object? obj)
+      (input-port? obj)
+      (<read-error> obj)
+      (<system-error> obj))
+    #t #f))
 
 (define (v->obj v)
   (cond
@@ -547,6 +546,19 @@
           (v->obj (v-pair.cdr v)))))
     (else (error "cannot convert to obj:" v))))
 
+(define (obj->v obj raiser)
+  (let obj->v ((obj obj))
+    (cond
+      ((symbol? obj) obj)
+      ((number? obj) obj)
+      ((boolean? obj) obj)
+      ((string? obj) obj)
+      ((null? obj) obj)
+      ((pair? obj)
+        (v-pair-tagged
+          (obj->v (car obj))
+          (obj->v (cdr obj))))
+      (else (raiser)))))
 
 ;;; env
 (define (env-bind var value) (cons var value))
@@ -655,6 +667,10 @@
           (define obj (car args))
           (or (tagged? v-lambda-tag obj)
               (tagged? v-builtin-tag obj))))
+      (env-bind-builtin 'input-port? 1 #f
+        (lambda (args) (input-port? (car args))))
+      (env-bind-builtin 'eof-object? 1 #f
+        (lambda (args) (eof-object? (car args))))
       (env-bind-builtin 'eq? 2 #f
         (lambda (args) (eq? (car args) (cadr args))))
       (env-bind-builtin 'equal? 2 #f
@@ -722,6 +738,40 @@
             (else (raise-type-error "symbol" sym)))))
       (env-bind-builtin 'raise 1 #f
         (lambda (args) (raise (car args))))
+      (env-bind-builtin '<system-error> 1 #f
+        (lambda (args) (<system-error> (car args))))
+      (env-bind-builtin '<read-error> 1 #f
+        (lambda (args) (<read-error> (car args))))
+      (env-bind-builtin 'read 0 #t
+        (lambda (args)
+          (let*
+            ( (obj
+                (cond
+                  ((null? args) (read))
+                  ((null? (cdr args))
+                    (let ((port (car args)))
+                      (cond
+                        ((input-port? port) (read port))
+                        (else (raise-type-error "input-port" port)))))
+                  (else (raise-builtin-error "too many arguments")))) )
+            (if (eof-object? obj) obj
+              (obj->v
+                obj
+                (lambda ()
+                  (raise-builtin-error "read: unimplemented expression")))))))
+      (env-bind-builtin 'open-input-file 1 #f
+        (lambda (args)
+          (define filename (car args))
+          (cond
+            ((string? filename) (open-input-file filename))
+            (else (raise-type-error "string" filename)))))
+      (env-bind-builtin 'close-port 1 #f
+        (lambda (args)
+          (define port (car args))
+          (cond
+            ((input-port? port) (close-port port))
+            (else (raise-type-error "port" port)))
+          v-command-ret))
     ))
   (define program '(
     (define (not obj) (if obj #f #t))
@@ -967,7 +1017,7 @@
         ( (filename (cadr toplevel))
           (port
             (guard
-              (_ (else
+              (err ((<system-error> err)
                   (raise-v-error "cannot open file: " (msg-w filename))))
               (open-input-file filename)))
           (program

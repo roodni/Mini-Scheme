@@ -127,6 +127,22 @@
 (expect-error '( (symbol?) ))
 (expect-error '( (symbol? 'a 'b) ))
 
+; input-port?
+(expect-error '( (input-port?) ))
+(expect-error '( (input-port? 1 2) ))
+
+; eof-object?
+(expect-error '( (eof-object?) ))
+(expect-error '( (eof-object? 1 2) ))
+
+; <system-error>
+(expect-error '( (<system-error>) ))
+(expect-error '( (<system-error> 1 2) ))
+
+; <read-error>
+(expect-error '( (<read-error>) ))
+(expect-error '( (<read-error> 1 2) ))
+
 ; symbol->string
 (expect-error '( (symbol->string) ))
 (expect-error '( (symbol->string 'a 'b) ))
@@ -134,3 +150,18 @@
 ; eq?
 (expect-error '( (eq? 'a) ))
 (expect-error '( (eq? 'a 'b 'c) ))
+
+; equal?
+(expect-error '( (equal? 'a) ))
+(expect-error '( (equal? 'a 'b 'c) ))
+
+; read
+(expect-error '( (read 1 2) ))
+
+; open-input-file
+(expect-error '( (open-input-file) ))
+(expect-error '( (open-input-file "a" "b") ))
+
+; close-port
+(expect-error '( (close-port) ))
+(expect-error '( (close-port 1 2) ))
