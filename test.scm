@@ -359,6 +359,32 @@
 ))
 
 ;; other
+; letrec
+(mini-test '(#t #f #t) '(
+  (letrec
+    ( (even?
+        (lambda (n)
+          (if (= 0 n) #t (odd? (- n 1)))))
+      (odd?
+        (lambda (n)
+          (if (= 0 n) #f (even? (- n 1))))) )
+    (list
+      (even? 88)
+      (even? 3)
+      (odd? 3)))
+))
+
+; begin
+(mini-test v-command-ret '( (begin) ))
+(mini-test '(6 5 4) '(
+  (define l '())
+  (define (push x) (set! l (cons x l)))
+  (if #f
+    (begin (push 1) (push 2) (push 3))
+    (begin (push 4) (push 5) (push 6)))
+  l
+))
+
 ; load
 (mini-test '46 '(
   (load "./samples/hoge.scm")
@@ -648,14 +674,14 @@
     (if (= x 0) #t (odd? (- x 1))))
   (define (odd? x)
     (if (= x 0) #f (even? (- x 1))))
-  (even? 1001)
+  (even? 11)
 ))
 (mini-test #t '(
   (define (even? x)
     (if (= x 0) #t (odd? (- x 1))))
   (define (odd? x)
     (if (= x 0) #f (even? (- x 1))))
-  (even? 1000)
+  (even? 10)
 ))
 
 (mini-test '(1 2 . (3 4 5)) '(

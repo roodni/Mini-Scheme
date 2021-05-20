@@ -151,3 +151,17 @@
 (expect-parse-error '(
   (guard (c (else 1)))
 ))
+
+; begin
+(expect-parse-error '(
+  (begin . 1)
+))
+
+; letrec
+(expect-parse-error '(
+  (letrec)
+))
+
+(expect-parse-error '(
+  (letrec ())
+))

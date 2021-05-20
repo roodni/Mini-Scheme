@@ -278,6 +278,15 @@
               (cadr expr)
               (lambda () (raise-parse-error expr)))))
         (else (raise-parse-error expr))))
+    ((match? '('begin . _) expr)
+      (cond
+        ((null? (cdr expr)) (tag prim-const-tag v-command-ret))
+        (else
+          (let*
+            ( (prim+ (parse-expr+ (cdr expr) expr))
+              (mid-prims (car prim+))
+              (last-prim (cadr prim+)) )
+            (prim-begin-tagged mid-prims last-prim)))))
     ((match? '('lambda . _) expr)
       (cond
         ((match? '((* symbol (or () symbol)) . _) (cdr expr))
@@ -332,6 +341,28 @@
                   expr))
               body
               bindings)))
+        (else (raise-parse-error expr))))
+    ((match? '('letrec . _) expr)
+      (cond
+        ((match? '(_ . _) (cdr expr))
+          (let*
+            ( (bindings (parse-bindings (cadr expr) expr))
+              (body (parse-body (cddr expr) expr))
+              (bindings-vars (map car bindings))
+              (bindings-set!-list
+                (map
+                  (lambda (binding)
+                    (prim-set!-tagged (car binding) (cadr binding)))
+                  bindings))
+              (bindings-voids (map (lambda (_) (tag prim-const-tag v-void)) bindings)) )
+            (prim-call-tagged
+              (prim-lambda-tagged
+                bindings-vars
+                (prim-begin-tagged
+                  bindings-set!-list
+                  body))
+              bindings-voids
+              expr)))
         (else (raise-parse-error expr))))
     ((match? '('if . _) expr)
       (cond
