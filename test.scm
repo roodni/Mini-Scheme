@@ -221,6 +221,14 @@
 (mini-test #f '( (<= 1 0) ))
 (mini-test #t '( (<= 1 2 3) ))
 
+; /
+(mini-test 1/2 '(
+  (/ 2)
+))
+(mini-test 4 '(
+  (/ 24 2 3)
+))
+
 ; -
 (mini-test -7 '(
   (- 1 3 5)

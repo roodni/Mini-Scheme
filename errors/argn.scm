@@ -38,6 +38,11 @@
   (-)
 ))
 
+; /
+(expect-error '(
+  (/)
+))
+
 ; lambda
 (expect-error '(
   ((lambda (x y . z) x) 1)

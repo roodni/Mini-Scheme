@@ -731,6 +731,15 @@
           (cond
             ((null? (cdr args)) (- (car args)))
             (else (fold-left - (car args) (cdr args))))))
+      (env-bind-builtin '/ 1 #t
+        (lambda (args)
+          (define (safe/ x y)
+            (if (= y 0) (raise-builtin-error "zero division")
+              (/ x y)))
+          (expect-number-list args)
+          (cond
+            ((null? (cdr args)) (safe/ 1 (car args)))
+            (else (fold-left safe/ (car args) (cdr args))))))
       (env-bind-builtin '= 2 #t
         (lambda (args)
           (expect-number-list args)

@@ -24,6 +24,11 @@
   (- 1 #f)
 ))
 
+; /
+(expect-error '(
+  (/ "a")
+))
+
 ; car
 (expect-error '(
   (car 1)
