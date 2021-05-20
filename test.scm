@@ -275,6 +275,15 @@
   (length (list 12 34))
 ))
 
+; last
+(mini-test 1 '( (last '(1)) ))
+(mini-test 3 '(
+  (last '(1 2 3))
+))
+(mini-test 2 '(
+  (last '(1 2 . 3))
+))
+
 ; fold
 (mini-test 23 '(
   (fold + 0 '(3 1 4 1 5 9))

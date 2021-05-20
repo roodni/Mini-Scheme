@@ -858,6 +858,11 @@
     (define (length lis)
       (let loop ((n 0) (lis lis))
         (if (null? lis) n (loop (+ n 1) (cdr lis)))))
+    (define (last p)
+      (let last ((p p))
+        (if (pair? (cdr p))
+          (last (cdr p))
+          (car p))))
     
     (define (memq obj lis)
       (let memq ((lis lis))
